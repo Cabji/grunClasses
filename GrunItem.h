@@ -79,7 +79,7 @@ class GrunItem
 		// convert everything back into ancient C types and use buffers and shit to make it compile.
 
 		// zero-check: if the p_member's value is in the default state, it means the GrunItem's attributes have never been calculated, so return the LKGWCalculatedTime string as "NULL"
-		if (member == std::chrono::system_clock::time_point{}) { return std::string("NULL"); }
+		if (std::chrono::system_clock::to_time_t(member) == 0) { return std::string("NULL"); }
 		try
 		{
 			// convert time_point to std::time_t

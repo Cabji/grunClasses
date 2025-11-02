@@ -15,8 +15,9 @@ int main ()
 	slab.addGrunItem("Tie Wire (Blek)", "1", "", "roll(s)", "/20");
 	slab.addGrunItem("Kahnkreet","V","","m3","/ 2.5");
 	slab.addGrunItem("Labour - Secondary", "1", "", "hour(s)", "");
-	slab.calculateGrunObjectTotals();
+	slab.addGrunItem("Dowel R12 450 HDG","5L@0.6","","bar(s)","/ 14");
 	std::println("GrunObject's details: Name: \n\tLength: {}\tWidth: {}\tArea: {}",slab.getObjectName(),slab.getObjectProperty("length"),slab.getObjectProperty("width"),slab.getObjectProperty("area"));
 	std::println("GrunObject [{}] Item List information:\n{}", slab.getObjectName(), slab.getGrunItemListInfoAsString("%Y%m%d %H%M%S"));
-	std::println("GrunObject's Total Data\n{}", slab.getGrunObjectTotals());
+	slab.determineGrunObjectTotals();
+	std::println("GrunObject's Totals Data {}", slab.getGrunObjectTotalsInfoAsString());
 }

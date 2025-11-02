@@ -266,18 +266,6 @@ size_t GrunObject::removeGrunItem(std::vector<size_t> indices)
 }
 
 /**
- * @brief Gets a vector of pointers that point to the _members in the GrunObjectTotals instance (m_objectTotals)
- * @return std::vector<std::unordered_map<std::string, TotalAndUnit>*>
- * @note This function simply returns the value from m_objectTotals.getMapPointers, so if you add more members to GrunObjectTotal struct, you have to update GrunObjectTotal::GetMapPointers()
- */
-std::vector<std::unordered_map<std::string, TotalAndUnit>*> GrunObject::getTotalPointers()
-{
-	// get the pointers from the m_objectTotals member
-	const auto& returnVal =  m_objectTotals.getMapPointers();
-	return returnVal;
-}
-
-/**
  * @brief Gets a string that will describe the secondary materials in the GrunObject (mostly for debugging output)
  * @return std::string showing information about GrunItems in the GrunObject
  */
@@ -304,42 +292,52 @@ std::string GrunObject::getGrunItemListInfoAsString(const std::string dateFormat
 	return returnVal;
 }
 
-std::string GrunObject::getGrunObjectTotals()
+/**
+ * @brief Formats the calculated GrunObjectTotals into a readable string.
+ * @return A string containing all aggregated totals.
+ */
+std::string GrunObject::getGrunObjectTotalsInfoAsString() const
 {
-	// Use std::stringstream to build the output string efficiently
-    std::stringstream ss;
-    
-    // Get the maps and iterate using the index to look up the descriptive name
-    std::vector<std::unordered_map<std::string, TotalAndUnit>*> mapPointers = m_objectTotals.getMapPointers();
+	std::stringstream ss;
+	
+	// Helper array to hold the display names for the map categories
+	const std::string categories[] = {
+		"Primary Labour Total",
+		"Spatial Material Totals (By Relationship)",
+		"Item Unit Totals (By Item Name)"
+	};
+	
+	// Access all three maps via the GrunObjectTotals instance
+	const auto& totals = m_objectTotals;
+	
+	// Array of pointers to the three map members for iteration
+	auto totalMaps = GrunObjectTotals::TOTALS_PTRS;
 
-    ss << std::format("--- GrunObject Totals ({}) ---\n", m_name);
-    
-    for (size_t i = 0; i < mapPointers.size(); ++i)
-    {
-        const auto* totalMap = mapPointers[i];
-        
-        // 1. Output the section header (using the descriptive name)
-        ss << std::format("Map [{}]: {}\n", i, m_objectTotals.getMapName(i));
+	ss << std::format("\n--- {} Aggregated Totals ---\n", m_name);
+	
+	for (size_t i = 0; i < GrunObjectTotals::getMapCount(); ++i)
+	{
+		// 1. Get the current map (read-only reference)
+		const auto& currentMap = totals.*totalMaps[i];
 
-        if (totalMap->empty())
-        {
-            ss << "\t(No aggregated totals in this section)\n";
-        }
-        else
-        {
-            // 2. Loop through the key-value pairs in the unordered_map
-            // The value 'TotalAndUnit' will be automatically formatted by the custom formatter
-            for (const auto& pair : *totalMap)
-            {
-                // pair.first is std::string (the item name)
-                // pair.second is TotalAndUnit (the value)
-                ss << std::format("\t- {:20}: {}\n", pair.first, pair.second);
-            }
-        }
-        ss << "\n";
-    }
+		ss << std::format("\n  [ {} ]\n", categories[i]);
+		
+		if (currentMap.empty())
+		{
+			ss << std::format("    (No aggregated data)\n");
+			continue;
+		}
 
-    return ss.str();
+		// 2. Iterate through the key-value pairs in the map
+		for (const auto& [key, totalAndUnit] : currentMap)
+		{
+			// Output format: [Key] = Total (Unit)
+			// Using {:.<35} for left-justified key with padding of dots
+			ss << std::format("    {:.<35} = {}\n", key, totalAndUnit);
+		}
+	}
+	
+	return ss.str();
 }
 
 /**
@@ -623,92 +621,67 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
     return shn_success; 
 }
 
-/**
- * @brief	Calculates the Totals data for the GrunObject.
- * @note	This function utilises a pointer to look at the members of the m_objectTotals object. There are 3 std::unordered_maps in the TotalsAndUnits struct and in this function ptrToAnUnorderedMap points to them consecutively through a for loop clause.
- * @warning	If the design of TotalsAndUnits struct changes, you must ensure contiguity of these unordered_maps members for this function to work correctly.
- */
-int GrunObject::calculateGrunObjectTotals()
+int GrunObject::determineGrunObjectTotals()
 {
-	if (m_items.empty()) { return 0; }
-
-	// local data
-	int		returnVal = 0;
-	// create a psuedo-type 'MapPointer' and create a vector of MapPointers, load it with pointers to the members in m_objectTotals
-    using MapPointer = std::unordered_map<std::string, TotalAndUnit>*;
-    std::vector<MapPointer> ptrsToTotalsMembers = m_objectTotals.getMapPointers();
-    
-	// define the _source_ of Quantity and Unit for each destination map.
-    // The order MUST match the order returned by GrunObjectTotals::getMapPointers().
-    // We use C++ Pointer-to-Member syntax (e.g., &GrunItem::_itemQuantity) 
-    // to dynamically access the correct member for each map.
-
-	// create a psuedo-type 'AccessorPair' and load it with 
-    using AccessorPair = std::pair<double GrunItem::*, std::string GrunItem::*>;
-    std::array<AccessorPair, 3> accessors = {
-        // Map 0 (_labourTotal) -> Quantity from _primaryLabourQuantity, Unit from _primaryLabourUnits
-        std::make_pair(&GrunItem::_itemPrimaryLabour, &GrunItem::_itemPrimaryLabourUnits),
-        
-        // Map 1 (_materialTotalsSpatial) -> Quantity from _relationQuantity, Unit from _relationship
-		// dev-note: this assignment is incorrect for now. i have to implement auto detection of spatial units based on _relationship expression
-        std::make_pair(&GrunItem::_relationQuantity, &GrunItem::_relationship),
-        
-        // Map 2 (_materialTotalsItemUnit) -> Quantity from _itemQuantity, Unit from _itemUnits
-        std::make_pair(&GrunItem::_itemQuantity, &GrunItem::_itemQuantityUnits)
-    };
-
-	// Safety check: ensure the number of accessors matches the number of maps
-    if (accessors.size() != ptrsToTotalsMembers.size())
-    {
-        // This is a configuration error, should ideally be caught at compile time.
-        // For runtime safety, return an error code or throw.
-        return 1; // Return non-zero for error
-    }
-
-	// loop the m_items vector and for each item, decide if the GrunItem's _itemName needs a new entry in the m_objectTotals' unordered_map	members 
-	for (const auto& item : m_items)
+	// loop through the pointer-to-members in m_totalsPtrs using the number of members assigned in the GrunObjectTotals struct
+	for (int i = 0; i < GrunObjectTotals::getMapCount(); i++)
 	{
-		// loop over the destination maps (we use the for loop's index value (i) to choose the correct accessor)
-		for (size_t i = 0; i < ptrsToTotalsMembers.size(); i++)
+		// define the destination for our data
+		// set which member of GrunObjectTotals we are pointing to using the value of i as the index of the GrunObjectTotals::TOTAL_PTRS[] array
+		auto		memberPtr	= GrunObjectTotals::TOTALS_PTRS[i];
+		auto&		currentMap	= m_objectTotals.*memberPtr;
+
+		for (const auto& item : m_items)
 		{
-			MapPointer ptrToMap = ptrsToTotalsMembers[i];
+			// Temporary variables to hold the aggregation data determined by the switch
+			std::string aggregationKey	= "";
+			double		itemQuantity	= 0.0;
+			std::string	itemUnit		= "";
 
-			// extract the correct accessor pair
-			double 			GrunItem::*	quantityMember	= accessors[i].first;
-			std::string		GrunItem::*	unitMember		= accessors[i].second;
+			switch (i)
+			{
+				case 0:
+					// Case 0 (Labour Total): Aggregate everything into a single grand total, keyed by the object's name.
+					aggregationKey	= m_name;
+					itemQuantity	= item._itemPrimaryLabour;
+					itemUnit		= item._itemPrimaryLabourUnits;
+					break;
+				
+				case 1:
+					// Case 1 (Spatial Totals): Aggregate by the relationship unit (e.g., 'A', '2W', 'V')
+					aggregationKey	= item._relationship;
+					itemQuantity	= item._relationQuantity;
+					itemUnit		= item._relationship; // Use relationship string as the unit/identifier
+					break;
 
-			// get the values from the current item
-			double						itemQuantity	= item.*quantityMember;
-	const	std::string&				itemUnit		= item.*unitMember; 
-	const	std::string&				itemName		= item._itemName;
-
-			// skip processing if the quantity is zero
-			if (itemQuantity == 0.0) continue;
-
-			// Use operator[] to get a reference to the entry. 
-            // If the key (itemName) doesn't exist, it inserts a new TotalAndUnit 
-            // with default values (total=0.0, unit="").
-            TotalAndUnit& currentEntry = (*ptrToMap)[itemName];
+				case 2:
+					// Case 2 (Item Unit Totals): Aggregate by the Item Name.
+					aggregationKey	= item._itemName; 
+					itemQuantity	= item._itemQuantity;
+					itemUnit		= item._itemQuantityUnits; // Use the base item unit
+					break;
+				
+				default:
+					break;
+			}
 			
-			// IF the unit is currently empty, set it from the item.
-            // This assumes the first time an item is encountered, its unit is the definitive one.
-            if (currentEntry._unit.empty())
-            {
-                currentEntry._unit = itemUnit;
-            }
-            // ELSE IF the unit is different, you might want to log a warning or throw an error
-            // because you cannot aggregate different units (e.g., "m" and "cm").
-            else if (currentEntry._unit != itemUnit && !itemUnit.empty())
-            {
-				std::println("Warning: Attemping to combine '{}' with unit '{}' into an existing entry with unit'{}'. Skipping unit update.", 
-							itemName, itemUnit, currentEntry._unit
-				);
+			// 2. Aggregation step: Use the determined key to look up (or create) the entry in the map
+			if (itemQuantity != 0.0 && !aggregationKey.empty()) 
+			{
+				// Get a reference to the specific TotalAndUnit structure we want to update.
+				// operator[] will create a new TotalAndUnit entry if the key doesn't exist.
+				TotalAndUnit& entry = currentMap[aggregationKey];
 
-            }
-			// Always add the quantity to the total
-            currentEntry._total += itemQuantity;
+				// Aggregate the total value
+				entry._total += itemQuantity;
+
+				// Set the unit: Only set it if the entry is currently using the default/empty unit.
+				// This ensures the unit from the first item aggregated is used for the key.
+				if (entry._unit == "unit(s)" || entry._unit.empty()) {
+					entry._unit = itemUnit;
+				}
+			}
 		}
 	}
-
 	return 0;
 }

@@ -54,27 +54,34 @@ struct std::formatter<TotalAndUnit> : std::formatter<std::string>
 
 /**
  * @brief Holds 'totals' values about the GrunItems in this GrunObject
- * @property _labourTotal			(std::unordered_map<std::string, TotalsAndUnits>)	first() holds string "Labour", second() holds TotalsAndUnits object with total value and units of measure for the GrunItem
- * @property _materialTotalsSpatial	(std::unordered_map<std::string, TotalsAndUnits>)	first() holds unique GrunItem names found in the GrunObject, second() holds TotalsAndUnits object with total value and units of measure for the GrunItem
+ * @property _labourTotal				(std::unordered_map<std::string, TotalsAndUnits>)	first() holds string "Labour", second() holds TotalsAndUnits object with total value and units of measure for the GrunItem
+ * @property _materialTotalsSpatial		(std::unordered_map<std::string, TotalsAndUnits>)	first() holds unique GrunItem names found in the GrunObject, second() holds TotalsAndUnits object with total value and units of measure for the GrunItem
  * @property _materialTotalsItemUnit	(std::unordered_map<std::string, TotalsAndUnits>)	first() holds unique GrunItem names found in the GrunObject, second() holds TotalsAndUnits object with total value and units of measure for the GrunItem
  */
 struct GrunObjectTotals
 {
+	private: 
+	// maps for storing aggregated totals data about a GrunObject's GrunItems
 	std::unordered_map<std::string, TotalAndUnit>	_labourTotal;
 	std::unordered_map<std::string, TotalAndUnit>	_materialTotalsSpatial;
 	std::unordered_map<std::string, TotalAndUnit>	_materialTotalsItemUnit;
 
+	public:
+	using	GrunObjectTotalsPtrs = std::unordered_map<std::string, TotalAndUnit> GrunObjectTotals::*; 
+	static	constexpr	GrunObjectTotalsPtrs		TOTALS_PTRS[] =
+	{
+		&GrunObjectTotals::_labourTotal,
+		&GrunObjectTotals::_materialTotalsSpatial, 
+		&GrunObjectTotals::_materialTotalsItemUnit
+	};
+
+
 	/**
-     * @brief Returns a vector of pointers that point to the _members in the GrunObjectTotals instance (m_objectTotals). 
+     * @brief Returns the number of total maps available.
+     * @return The size of the MAP_PTRS array.
      */
-    std::vector<std::unordered_map<std::string, TotalAndUnit>*> getMapPointers()
-    {
-        // create a vector of pointers to the unordered_maps in this struct and return it
-		return {
-            &_labourTotal,
-            &_materialTotalsSpatial,
-            &_materialTotalsItemUnit
-        };
+    static constexpr size_t getMapCount() {
+        return std::size(TOTALS_PTRS);
     }
 
 	/**
@@ -160,19 +167,17 @@ class GrunObject
 							   );
 
 
-	int				calculateGrunObjectTotals();
+	int				determineGrunObjectTotals();
     double 			getAspectRatio();
 	std::string		getGrunItemListInfoAsString(const std::string dateFormat = "%d/%m/%Y");
-	std::string		getGrunObjectTotals();
+	std::string		getGrunObjectTotalsInfoAsString() const;
 	std::string		getObjectName();
 	double			getObjectProperty(const std::string propertyName);
 	size_t 			removeGrunItem(const std::string& itemName, bool removeAll = false);
 	bool			removeGrunItem(size_t index);
 	size_t			removeGrunItem(std::vector<size_t> indices);
 
-	std::vector<std::unordered_map<std::string, TotalAndUnit>*>	getTotalPointers();
 	private:
-	
 	std::string									m_name;					// the GrunObject's name
 	std::string									m_stage;				// the GrunObject's stage assignment
 	ShapeType									m_type;					// the basic 2D geometric shape this object is based upon (Rectangle, Triangle etc.)
@@ -186,6 +191,10 @@ class GrunObject
 	double										m_circumference;		// the circumference of the shape if it's a Circle.
 	std::vector<GrunItem>						m_items;				// std::vector of GrunItems associated to the GrunObject
 	GrunObjectTotals							m_objectTotals;			// an object that holds Totals data about the GrunItems in this GrunObject
+	std::unordered_map<
+		std::string, 
+		TotalAndUnit> 
+			GrunObjectTotals::*					m_totalsPtrs[];
 
 	bool			calculateGrunItemData(GrunItem &item);
 };
