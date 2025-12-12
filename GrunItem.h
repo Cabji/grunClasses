@@ -5,6 +5,21 @@
 #define CLASS_NAME "GrunItem"
 #endif
 
+// used for calculating what spatial unit a GrunItem relationship should result in
+enum class SpatialExponentValue {
+    Unitless = 0,
+    Linear   = 1,
+    Area     = 2,
+    Volume   = 3
+};
+
+/**
+ * @brief Converts a SpatialExponentValue enum to its human-readable string representation.
+ * @param exponent - The enum value to convert.
+ * @return std::string - The corresponding string ("Unitless", "Linear", "Area", "Volume").
+ */
+std::string spatialExponentValueToString(SpatialExponentValue exponent);
+
 /**
  * @brief GrunItem is an instance of an Item from the inventory (eg: a Material, Service, or some form of Secondary Labour). GrunItem will generally have a 'relationship' to its 'owner' GrunObject, or GrunItem can simply have an incidental amount as its relationship, like: 1 to add 1 roll of tie wire to the job, or 8 to set 8 hours of buffer labour to the job.
  * @note mandatory info about a GrunItem to create a fully working instance of it is: 
@@ -23,6 +38,7 @@ class GrunItem
 	public:
 	std::string 							_itemName					= "";		// required value on construction
 	std::string 							_relationship				= "";		// required value on construction
+	SpatialExponentValue					_spatialExponentValue		= SpatialExponentValue::Unitless;
 	double									_relationQuantity			= 0.0;
 	std::string 							_itemQuantityFormula		= "";
 	double									_itemQuantity				= 0.0;
@@ -66,58 +82,5 @@ class GrunItem
 		// add any needed calculations in here, example: use _relationship to determine value that allows quantifying the GrunItem's _itemQuantity
 	}
 
-	/**
-	 * @brief Converts a GrunItem's time-typed member to user-friendly date/time string, returned in optional format
-	 * @param member 	- the time-typed member in the GrunItem we want to retrieve (required)
-	 * @param format	- std::string that defines the format the time should be shown in (default: "%Y%m%d %H:%M:%S")
-	 * @return std::string	- The formatted datetime string, NULL" if the item's attributes have never been calculated, or error msg if an error is encountered
-	 */
-	std::string	getCalculatedTimeString(const std::chrono::system_clock::time_point& member, const std::string& format = "%Y%m%d %H:%M:%S") 
-	{ 
-		// dev-note: this function uses some archaic looking C-style shit, because apparently if we want to use the "format" argument to 
-		// allow us to customize the way the timestamp is displayed in output, C++20 doesnt have a way to do this, so instead we have to 
-		// convert everything back into ancient C types and use buffers and shit to make it compile.
-
-		// zero-check: if the p_member's value is in the default state, it means the GrunItem's attributes have never been calculated, so return the LKGWCalculatedTime string as "NULL"
-		if (std::chrono::system_clock::to_time_t(member) == 0) { return std::string("NULL"); }
-		try
-		{
-			// convert time_point to std::time_t
-			const std::time_t t_c = std::chrono::system_clock::to_time_t(member);
-			// convert time_t to local time tm structure
-			std::tm* tm_local = std::localtime(&t_c);
-			if (!tm_local) { return std::string("Time conversion error"); }
-
-			std::string buffer(128,'\0');
-			size_t size = buffer.size();
-			size_t written = 0;	
-			while (true)
-			{
-				written = std::strftime(buffer.data(), size, format.c_str(), tm_local);
-				if (written > 0)
-				{
-					buffer.resize(written);
-					return buffer;
-				}
-				else if (written == 0 && size == 0)
-				{
-					if (buffer.size() > 1024)
-					{
-						return std::string("Time formatting error: buffer limit exceeded");
-					}
-					size *= 2;
-					buffer.resize(size);
-				}
-				else
-				{
-					return std::string("Time formmating failed.");
-				}
-			}
-		}
-		catch(const std::exception& e)
-		{
-			// catch exceptions that could arise from bad format strings
-			return std::format("Caught exception, the datetime format string is invalid: '{}'", e.what());
-		}
-	}
+	std::string	getCalculatedTimeString(const std::chrono::system_clock::time_point& member, const std::string& format = "%Y%m%d %H:%M:%S");
 };

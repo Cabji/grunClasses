@@ -11,6 +11,23 @@
 
 const double PI = std::acos(-1.0);
 
+// set the mapped relations for GrunObject preoprties to SpatialExponentValues in here. 
+// if you add additional properties to GrunObject, you need to add entries for them in here.
+const std::unordered_map<std::string, SpatialExponentValue> GrunObject::propertyDimensions = {
+    // Linear (1D) properties (L^1)
+    {"L", SpatialExponentValue::Linear},			// Length
+    {"W", SpatialExponentValue::Linear},			// Width
+    {"D", SpatialExponentValue::Linear},			// Depth
+
+    // Area (2D) properties (L^2)
+    {"A", SpatialExponentValue::Area},				// Area  
+    
+    // Volume (3D) properties (L^3)
+    {"V", SpatialExponentValue::Volume}				// Volume
+    
+    // All other properties default to Unitless (L^0)
+};
+
 /**
  * @brief GrunShape Constructor
  * * The m_x, m_y and m_z values are interpretted differently depending on the ShapeType.
@@ -142,6 +159,53 @@ GrunObject::GrunObject(const std::string &typeName,
 	}
 }
 
+/**
+ * @brief Normalizes the property name by converting it to uppercase.
+ * This ensures case-insensitive lookup (e.g., "l" becomes "L", "surfacearea" becomes "SURFACEAREA").
+ */
+std::string normalizePropertyName(const std::string& name) {
+    std::string upper = name;
+    // std::transform applies the lambda (toupper) to every character in the range
+    std::transform(upper.begin(), upper.end(), upper.begin(), 
+        [](unsigned char c){ return std::toupper(c); });
+    return upper;
+}
+
+/**
+ * @brief Fetch the Spatial Exponent Value of a specific GrunObject property
+ */
+SpatialExponentValue GrunObject::getSpatialUnit(const std::string& propertyName) {
+    // normalize the input token
+    std::string normalizedName = normalizePropertyName(propertyName);
+    
+    auto it = propertyDimensions.find(normalizedName);
+    
+    if (it != propertyDimensions.end()) {
+        return it->second;
+    } else {
+        // Warning is printed, and Unitless (0) is returned as default safety
+        std::println("Warning: Unknown property '{}'. Assuming Unitless (L^0) for dimensional inference.", propertyName);
+        return SpatialExponentValue::Unitless; 
+    }
+}
+
+/**
+ * @brief Returns the integer value of a SpatialExponentValue value
+ */
+int GrunObject::asInt(SpatialExponentValue unit) {
+    // Casting the strongly-typed enum value to its underlying integer type
+    return static_cast<int>(unit);
+}
+
+/**
+ * @brief Adds a GrunItem to the GrunObject's m_items
+ * @param <name> item's name/identifier
+ * @param <relationship> SHN relationship this GrunItem instance has with it's owning GrunObject
+ * @param quantityFormula formula applied to result of relationship to calculate a quantity of this Item (empty by default)
+ * @param units item's unit of measure ("unit(s)" by default)
+ * @param primaryLabourFormula formula applied to quantity of this Item to calculate Primary Labour quantity (empty by default)
+ * @return true if successful, false if failure.
+ */
 bool GrunObject::addGrunItem(std::string name, std::string relationship, std::string quantityFormula, std::string units, std::string primaryLabourFormula)
 {
 	// zero check
@@ -277,6 +341,7 @@ std::string GrunObject::getGrunItemListInfoAsString(const std::string dateFormat
 	{
 		returnVal += std::format("{:<40}",item._itemName.substr(0,40)) +
 					 std::format("{:<17}","Rel: " + item._relationship) + 
+					 std::format("{:<13}","SV: " + spatialExponentValueToString(item._spatialExponentValue)) + 
 					 std::format("{:<9}","Rel.Qnt: ") + 
 					 std::format("{:>7.2f}",item._relationQuantity) + " " +
 					 std::format("{:<10}","Item.Qnt: ") + 
@@ -340,15 +405,7 @@ std::string GrunObject::getGrunObjectTotalsInfoAsString() const
 	return ss.str();
 }
 
-/**
- * @brief Adds a GrunItem to the GrunObject's m_items
- * @param <name> item's name/identifier
- * @param <relationship> SHN relationship this GrunItem instance has with it's owning GrunObject
- * @param quantityFormula formula applied to result of relationship to calculate a quantity of this Item (empty by default)
- * @param units item's unit of measure ("unit(s)" by default)
- * @param primaryLabourFormula formula applied to quantity of this Item to calculate Primary Labour quantity (empty by default)
- * @return true if successful, false if failure.
- */
+
 bool GrunObject::calculateGrunItemData(GrunItem &item)
 {
     // Define Width and Depth based on AreaType
@@ -370,7 +427,8 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
     item._itemQuantity = 0.0;
     item._itemPrimaryLabour = 0.0;
     bool shn_success = false;
-
+	// calculate the relationship's spatial exponent and assign it to the GrunItem's _spatialExponentValue
+	item._spatialExponentValue = calculateRelationshipSpatialExponent(item._relationship);
 
     // --- STEP 1: SHN CONVERSION (CALCULATE _relationQuantity) ---
     
@@ -621,7 +679,113 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
     return shn_success; 
 }
 
-int GrunObject::determineGrunObjectTotals()
+SpatialExponentValue GrunObject::calculateRelationshipSpatialExponent(const std::string &relationship) const
+{
+	// Regex for finding additive terms separated by '+' or '-'
+    // Note: This finds continuous sequences that are NOT '+' or '-'
+    std::regex termSeparatorRegex("([^\\+\\-]+)");
+    
+    // Regex for finding individual dimension tokens (L, W, A, V, etc.)
+    std::regex dimensionTokenRegex("([A-Z])");
+
+    int maxExponent = 0; // Tracks the highest exponent found across all additive terms
+
+    // --- PHASE 1: Iterate over the TOP-LEVEL ADDITIVE TERMS ---
+    std::sregex_iterator termIterator(relationship.begin(), relationship.end(), termSeparatorRegex);
+    std::sregex_iterator termEnd;
+
+    while (termIterator != termEnd) 
+    {
+        std::smatch currentTermMatch = *termIterator;
+        std::string currentTerm = currentTermMatch.str();
+        
+        // Clean whitespace from the current term
+        currentTerm.erase(0, currentTerm.find_first_not_of(" \t\n\r\f\v"));
+        currentTerm.erase(currentTerm.find_last_not_of(" \t\n\r\f\v") + 1);
+
+        int currentTermExponent = 0;
+
+        // --- PHASE 2: Check for Multiplication in the current term ---
+        if (currentTerm.find('*') != std::string::npos) 
+        {
+            // --- Case A: Multiplication (e.g., "1L * 1W" or "2A*L") ---
+            
+            // Re-use dimensionTokenRegex to find all tokens within the multiplicative term.
+            // We SUM the exponents of all tokens found in this single multiplicative term.
+            std::sregex_iterator tokenIterator(currentTerm.begin(), currentTerm.end(), dimensionTokenRegex);
+            std::sregex_iterator tokenEnd;
+
+            while (tokenIterator != tokenEnd)
+            {
+                std::smatch tokenMatch = *tokenIterator;
+                std::string token = tokenMatch[1].str(); 
+
+                auto it = propertyDimensions.find(token);
+
+                if (it != propertyDimensions.end()) 
+                {
+                    // Multiplication Rule: SUM the exponents
+                    currentTermExponent += static_cast<int>(it->second);
+                }
+
+                tokenIterator++;
+            }
+            
+            // Apply the maximum cap check for multiplicative results (A*V = 5 is capped at 3)
+            if (currentTermExponent > static_cast<int>(SpatialExponentValue::Volume)) 
+            {
+                currentTermExponent = static_cast<int>(SpatialExponentValue::Volume);
+            }
+        }
+        else 
+        {
+            // --- Case B: Implicit Addition / Single Dimension (e.g., "1L1W" or "2A") ---
+            
+            // If no '*' is present, treat the term as additive parts where the exponent 
+            // is the MAX exponent of all tokens found in the term (Dimensional Homogeneity).
+            
+            std::sregex_iterator tokenIterator(currentTerm.begin(), currentTerm.end(), dimensionTokenRegex);
+            std::sregex_iterator tokenEnd;
+            int maxTokenExponent = 0;
+
+            while (tokenIterator != tokenEnd)
+            {
+                std::smatch tokenMatch = *tokenIterator;
+                std::string token = tokenMatch[1].str(); 
+
+                auto it = propertyDimensions.find(token);
+
+                if (it != propertyDimensions.end()) 
+                {
+                    // Implicit Addition Rule: Find the MAX exponent
+                    int tokenExponent = static_cast<int>(it->second);
+                    if (tokenExponent > maxTokenExponent)
+                    {
+                        maxTokenExponent = tokenExponent;
+                    }
+                }
+                tokenIterator++;
+            }
+            // The exponent for this entire term is the max exponent found
+            currentTermExponent = maxTokenExponent;
+            // No need to cap here, as maxExponent is already capped by the enum definitions (max 3)
+        }
+        
+        // --- PHASE 3: Determine Max Exponent (Overall Addition/Homogeneity) ---
+        // The overall spatial exponent of the relationship is the maximum exponent of any term
+        if (currentTermExponent > maxExponent)
+        {
+            maxExponent = currentTermExponent;
+        }
+
+        termIterator++; // Move to the next term
+    }
+    
+    // Convert the final max exponent to the enum type
+    return static_cast<SpatialExponentValue>(maxExponent);
+}
+
+int GrunObject::calculateGrunObjectTotals()
 {
 	// loop through the pointer-to-members in m_totalsPtrs using the number of members assigned in the GrunObjectTotals struct
 	for (int i = 0; i < GrunObjectTotals::getMapCount(); i++)

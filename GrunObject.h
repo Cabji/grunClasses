@@ -27,6 +27,8 @@ enum class AreaType
 	Vertical
 };
 
+
+
 struct TotalAndUnit
 {
 	double		_total 	= 0.0;
@@ -161,13 +163,28 @@ class GrunObject
 					   const std::string &areaType = "horizontal",
 					   const std::string &stage = "");
 
+    /**
+     * @brief Gets the SpatialExponentValue (0, 1, 2, or 3) for a given property name token.
+     * @param propertyName The property name token (e.g., "L", "A", "Volume").
+     * @return The corresponding SpatialExponentValue enum. Defaults to Unitless (0) if not found.
+     */
+    static SpatialExponentValue getSpatialUnit(const std::string& propertyName);
+
+    /**
+     * @brief Converts a SpatialExponentValue enum to its underlying integer value (0, 1, 2, or 3).
+     * @param unit The SpatialExponentValue to convert.
+     * @return The integer exponent value.
+     */
+    static int 					asInt(SpatialExponentValue unit);
+
+
 	bool			addGrunItem(std::string name,					std::string relationship, 
 								std::string quantityFormula = "",	std::string units = "unit(s)", 
 								std::string primaryLabourFormula = ""
 							   );
 
 
-	int				determineGrunObjectTotals();
+	int				calculateGrunObjectTotals();
     double 			getAspectRatio();
 	std::string		getGrunItemListInfoAsString(const std::string dateFormat = "%d/%m/%Y");
 	std::string		getGrunObjectTotalsInfoAsString() const;
@@ -196,5 +213,12 @@ class GrunObject
 		TotalAndUnit> 
 			GrunObjectTotals::*					m_totalsPtrs[];
 
-	bool			calculateGrunItemData(GrunItem &item);
+	/**
+     * @brief Static constant map that links GrunObject properties (as strings) to their dimensional exponent value.
+     * This is the core of the Dimensional Inference Engine (RIE).
+     */
+    static const	std::unordered_map<std::string, SpatialExponentValue>	propertyDimensions;
+
+	bool				 calculateGrunItemData(GrunItem &item);
+	SpatialExponentValue calculateRelationshipSpatialExponent(const std::string& relationship) const;
 };
