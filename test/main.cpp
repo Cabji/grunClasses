@@ -10,7 +10,7 @@ int main ()
 	slab.addGrunItem("Subgrade - Fines","0.05A","","m3","/2");
 	slab.addGrunItem("Delivery - Steel","1","","delivery(ies)","*0.5");
 	slab.addGrunItem("Ableflex - 10mm x 100mm, Stick Backed","2W","/25","roll(s)","*0.5");
-	slab.addGrunItem("Dowel R12 450 HDG","2L1W3@0.6","","bar(s)","/ 14");
+	slab.addGrunItem("Dowel R12 450 HDG","2L1W@0.6","","bar(s)","/ 14");
 	slab.addGrunItem("Mesh SL92", "1L*1W","/ 12.5","mat(s)","* 0.66");
 	slab.addGrunItem("Tie Wire (Blek)", "1", "", "roll(s)", "/20");
 	slab.addGrunItem("Kahnkreet","V","","m3","/ 2.5");

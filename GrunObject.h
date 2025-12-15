@@ -219,6 +219,8 @@ class GrunObject
      */
     static const	std::unordered_map<std::string, SpatialExponentValue>	propertyDimensions;
 
-	bool				 calculateGrunItemData(GrunItem &item);
-	SpatialExponentValue calculateRelationshipSpatialExponent(const std::string& relationship) const;
+	bool					calculateGrunItemData(GrunItem &item);
+	SpatialExponentValue	calculateRelationshipSpatialExponent(const std::string& relationship) const;	// class method that determines Spatial Value an item's relationship value is creating
+	std::string 			substituteRelationshipTokens(const std::string& relationship) const;
+	SpatialExponentValue	mapUnitToSpatialExponent(const std::string& unit) const;
 };

@@ -7,7 +7,7 @@
 
 // used for calculating what spatial unit a GrunItem relationship should result in
 enum class SpatialExponentValue {
-    Unitless = 0,
+    None = 0,
     Linear   = 1,
     Area     = 2,
     Volume   = 3
@@ -16,7 +16,7 @@ enum class SpatialExponentValue {
 /**
  * @brief Converts a SpatialExponentValue enum to its human-readable string representation.
  * @param exponent - The enum value to convert.
- * @return std::string - The corresponding string ("Unitless", "Linear", "Area", "Volume").
+ * @return std::string - The corresponding string ("None", "Linear", "Area", "Volume").
  */
 std::string spatialExponentValueToString(SpatialExponentValue exponent);
 
@@ -38,8 +38,10 @@ class GrunItem
 	public:
 	std::string 							_itemName					= "";		// required value on construction
 	std::string 							_relationship				= "";		// required value on construction
-	SpatialExponentValue					_spatialExponentValue		= SpatialExponentValue::Unitless;
+	bool									_isCompoundRelationship		= false;	// user does not set this, the code determines this
+	SpatialExponentValue					_spatialExponentValue		= SpatialExponentValue::None;		// what the user's relationship means dimensionally
 	double									_relationQuantity			= 0.0;
+	SpatialExponentValue					_outputSpatialExponentValue	= SpatialExponentValue::None;		// what the item's unit requires dimensionally
 	std::string 							_itemQuantityFormula		= "";
 	double									_itemQuantity				= 0.0;
 	std::string 							_itemPrimaryLabourFormula	= "";
