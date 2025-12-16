@@ -418,11 +418,21 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
     bool shn_success = false;
 
 	// zero check - check for invalid tokens, abort if invalid tokens are found
-	// check if ANY valid tokens exist in the relationship value
-		// if none are found, it means this is a direct math calculation relationship (ie: it involves numbers only)
-			// calulate the rel qty & item qty (they are the same)
-			// set SV to None (direct math calculations cannot determine a spatial value as there is no relation to 3D space)
-			// return true
+	std::regex invalid_relationship_char_pattern("[^0-9.LWDAVC\\+\\-\\@\\*\\/\\s]"); 
+    if (std::regex_search(item._relationship, invalid_relationship_char_pattern))
+    {
+        std::println("dev-output: GrunItem => {} has an INVALID Relationship String: '{}'. Contains unsupported characters. Quantity set to 0.", 
+                     item._itemName, item._relationship);
+        return false;
+    }
+
+	// check for 1 or more of any valid GrunObject property tokens in the relaitonship string
+	std::regex valid_relationship_tokens("[LWDAVC]");
+    if (std::regex_search(item._relationship, valid_relationship_tokens))
+    {
+		
+	}
+		// check for any number of valid GrunObject property tokens in the relationship string
 		// if valid tokens are found
 			// note: for now, 'tokens' are simple, single characters, but in the future we may use token strings so we may need to accommodate for that now in the processing code below
 			// split the reltionship string into terms at each token, because the relationship string is different to standard math rules (every factor/divisor group is a term, not a factor)
@@ -452,30 +462,22 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
 									1.2*L@1.2		1.2<*>L</>1.2[+]1	0<+>1<->0[+]1	1 (Linear)	terms explicitly multiplied or divided, but terms with no Tokens do not add to the Spatial Value, and implicit terms do not increase the SPatial Value */
 
 					// therefore, this code block must: 
-						// 1. split up the relationship string (use regex)
+						// 1. split up the relationship string (use regex, see sub points for regex requirements)
 							// 1a. on any valid tokens (LWDAV etc)
 							// 1b. on any explicitly, user-defined math operators (+,-,/,*,^,√) - we may need to examine use of ^ and √ closer
 						// 2. between each split term, we must decide if we use an explicit operator, or an implicit operator
 						//	- our regex would ideally leave any explicit operators on the end of its trailing term so we might be able to pop explicit operators from the end of a term that is followed by an explicit operator)
 						// 3. define the logic that decides if we should increase the relationship's Spatial Exponent Value and calculate the Spatial Exponent Value (the Spatial Unit)
 						// 4. correctly calculate the Spatial Value from the relationship string so it matches the calculated Spatial Exponent Value.
-						
+
 				// 2. to get the Item Qty value
 
-	// 1. Check for STRICT NEGATIVE VALIDATION (Existing Logic)
-    // The invalid_shn_char_pattern is updated to exclude '@' to support the Dowel example.
-    std::regex invalid_shn_char_pattern("[^0-9.LWDAVC\\+\\-\\@\\*\\/\\s]"); 
-    if (std::regex_search(item._relationship, invalid_shn_char_pattern))
-    {
-        std::println("dev-output: GrunItem => {} has an INVALID SHN relationship: '{}'. Contains unsupported characters. Quantity set to 0.", 
-                     item._itemName, item._relationship);
-        return false;
-    }
+				// 3. direct math calculation
 
     // 2. Check for DIRECT QUANTITY (No SHN placeholders LWDAVC) (Existing Logic)
-    std::regex shn_placeholder_pattern("[LWDAVC]");
+    std::regex valid_relationship_tokens("[LWDAVC]");
 
-    if (!std::regex_search(item._relationship, shn_placeholder_pattern))
+    if (!std::regex_search(item._relationship, valid_relationship_tokens))
     {
         // Direct Quantity calculation (Left-to-Right precedence)
         // This is the evaluator that handles "8*2.5+1"
@@ -770,9 +772,9 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
 //     // --- STEP 1: SHN CONVERSION (CALCULATE _relationQuantity) ---
     
 //     // 2. Add STRICT NEGATIVE VALIDATION
-//     std::regex invalid_shn_char_pattern("[^0-9.LWDAVC\\+\\-\\@\\*\\/\\s]"); 
+//     std::regex invalid_relationship_char_pattern("[^0-9.LWDAVC\\+\\-\\@\\*\\/\\s]"); 
 
-//     if (std::regex_search(item._relationship, invalid_shn_char_pattern))
+//     if (std::regex_search(item._relationship, invalid_relationship_char_pattern))
 //     {
 //         std::println("dev-output: GrunItem => {} has an INVALID SHN relationship: '{}'. Contains unsupported characters. Quantity set to 0.", 
 //                      item._itemName, item._relationship);
@@ -780,9 +782,9 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
 //     }
 
 //     // 2b. Check for DIRECT QUANTITY (No SHN placeholders LWDAVC)
-//     std::regex shn_placeholder_pattern("[LWDAVC]");
+//     std::regex valid_relationship_tokens("[LWDAVC]");
 
-//     if (!std::regex_search(item._relationship, shn_placeholder_pattern))
+//     if (!std::regex_search(item._relationship, valid_relationship_tokens))
 //     {
 //         // Direct Quantity calculation (Left-to-Right precedence)
 //         std::regex direct_calculation_pattern("^\\s*(\\d*\\.?\\d+)\\s*((?:[\\+\\-\\*\\/]\\s*\\d*\\.?\\d+)*)\\s*$");
