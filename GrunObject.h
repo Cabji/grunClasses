@@ -221,6 +221,9 @@ class GrunObject
 
 	bool					calculateGrunItemData(GrunItem &item);
 	SpatialExponentValue	calculateRelationshipSpatialExponent(const std::string& relationship) const;	// class method that determines Spatial Value an item's relationship value is creating
+	SpatialExponentValue	getTokenExponent(std::string_view token);
 	std::string 			substituteRelationshipTokens(const std::string& relationship) const;
 	SpatialExponentValue	mapUnitToSpatialExponent(const std::string& unit) const;
+	std::string				injectImplicitOperators(std::string &segment);
+	void					interpretRelationship(std::string relationship);
 };

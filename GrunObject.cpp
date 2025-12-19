@@ -430,8 +430,26 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
 	std::regex valid_relationship_tokens("[LWDAVC]");
     if (std::regex_search(item._relationship, valid_relationship_tokens))
     {
-		
 	}
+
+	interpretRelationship(item._relationship);
+
+	/* basic overview for the flow of this function:
+		zero check 	- look for anything that makes the relationship string invalid, set result values to 0 and return false
+		token check	- if one or more valid tokens exist, step into token processing logic
+			token processing 
+				we have 2 aims here:
+					1. analyze relationship string to determine the Spatial Value and the Spatial Exponent Value (spatial unit of measure)
+					2. parse relationship string to calculate the Item Qty (note: sometimes, the Item Qty and Spatial Value are the same)
+				determine Spatial Value/Unit:
+					1. split the relationship string at each GrunObject Token (LWDAV) into an array structure
+						- this split creates the 'Relationship Terms'. A term is comprised of a Token that is (optionally?) preceded by a factor
+						  The factor can be applied via implicit multiplication (no operator between factor and Token), 
+						  or applied explicitly if the end-user explicitly types in an operator
+					2. check each term for explicit operators
+
+		direct math calculation	- */
+
 		// check for any number of valid GrunObject property tokens in the relationship string
 		// if valid tokens are found
 			// note: for now, 'tokens' are simple, single characters, but in the future we may use token strings so we may need to accommodate for that now in the processing code below
@@ -475,7 +493,6 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
 				// 3. direct math calculation
 
     // 2. Check for DIRECT QUANTITY (No SHN placeholders LWDAVC) (Existing Logic)
-    std::regex valid_relationship_tokens("[LWDAVC]");
 
     if (!std::regex_search(item._relationship, valid_relationship_tokens))
     {
@@ -1211,6 +1228,87 @@ SpatialExponentValue GrunObject::mapUnitToSpatialExponent(const std::string& uni
     return SpatialExponentValue::None;
 }
 
+std::string GrunObject::injectImplicitOperators(std::string &segment) {
+    // 1. Find the start of the Token (the first A-Z character)
+    auto token_start = std::find_if(segment.begin(), segment.end(), [](char c) {
+        return std::isupper(static_cast<unsigned char>(c));
+    });
+
+    // If no token (like "@1.2"), return as is
+    if (token_start == segment.end()) return segment;
+
+    // 2. Separate prefix and token
+    std::string prefix(segment.begin(), token_start);
+    std::string token(token_start, segment.end());
+
+    // 3. Handle empty prefix (e.g., "L" -> "1*L")
+    if (prefix.empty()) {
+        return "1*" + token;
+    }
+
+    // 4. Check if we need to inject '*'
+    char lastChar = prefix.back();
+    
+    // If it ends in a digit or decimal, it's shorthand. Inject '*'
+    if (std::isdigit(static_cast<unsigned char>(lastChar)) || lastChar == '.') {
+        return prefix + "*" + token;
+    }
+
+    // If it ends in an explicit operator (/, +, -, *), just join them
+    // Example: "1.5/L" -> "1.5/L"
+    return prefix + token;
+}
+
+void GrunObject::interpretRelationship(std::string relationship)
+{
+	// output the relationship string unchanged
+	std::println("Relationship: {}",relationship);
+	// remove the whitespace from the relationship string
+	relationship.erase(std::remove_if(relationship.begin(), relationship.end(), ::isspace), relationship.end());
+	
+	// split relationship into implied terms - matches numbers followed by one or more capital letters
+	std::regex splitOnObjectTokens(R"(([0-9.\/*+\-]+[A-Z]+)|(@[0-9.]+))");
+	// get split results
+	auto tokens_begin	= std::sregex_iterator(relationship.begin(), relationship.end(), splitOnObjectTokens);
+	auto tokens_end		= std::sregex_iterator();
+
+	std::vector<std::string> segments;
+	SpatialExponentValue totalRelationshipSV = SpatialExponentValue::None;
+
+	// store segments in vector of strings
+	for (std::sregex_iterator i = tokens_begin; i != tokens_end; ++i)
+	{
+		std::string s = i->str();
+		s = injectImplicitOperators(s);
+		segments.push_back(s);
+
+		// calculate spatial value for this segment
+		int segmentExponentSum = 0;
+		std::regex tokenFinder("[LWDAVC]");
+		auto t_begin	= std::sregex_iterator(s.begin(), s.end(), tokenFinder);
+		auto t_end		= std::sregex_iterator();
+
+		for (std::sregex_iterator it = t_begin; it != t_end; ++it)
+		{
+			// inside a segment, multiplication is the implied operator, so we sum the exponents
+			segmentExponentSum += static_cast<int>(getTokenExponent(it->str()));
+		}
+
+		// the relationship takes the dimension of its highest component
+		if (segmentExponentSum > static_cast<int>(totalRelationshipSV))
+		{
+			// max out at Volume (3) so we don't exceed the enum range if someone writes A*A for example
+			int clampedValue = std::min(segmentExponentSum, 3);
+			totalRelationshipSV = static_cast<SpatialExponentValue>(clampedValue);
+		}
+	}
+
+	// output results
+	std::print("After Interpretation: ");
+	for (auto &s : segments) std::print("{}",s);
+	std::println("\nDetected Spatial Value: {}", static_cast<int>(totalRelationshipSV));
+}
+
 std::string GrunObject::substituteRelationshipTokens(const std::string& relationship) const
 {
     std::string substituted_relationship = relationship;
@@ -1348,4 +1446,13 @@ SpatialExponentValue GrunObject::calculateRelationshipSpatialExponent(const std:
     }
     
     return static_cast<SpatialExponentValue>(maxExponent);
+}
+
+SpatialExponentValue GrunObject::getTokenExponent(std::string_view token)
+{
+    if (token == "V") return SpatialExponentValue::Volume;
+    if (token == "A") return SpatialExponentValue::Area;
+    if (token == "L" || token == "W" || token == "D" || 
+        token == "P" || token == "C") return SpatialExponentValue::Linear;   
+    return SpatialExponentValue::None;
 }
