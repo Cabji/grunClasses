@@ -432,7 +432,7 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
     {
 	}
 
-	interpretRelationship(item._relationship);
+	item._spatialExponentValue = interpretRelationship(item._relationship);
 
 	/* basic overview for the flow of this function:
 		zero check 	- look for anything that makes the relationship string invalid, set result values to 0 and return false
@@ -1259,16 +1259,15 @@ std::string GrunObject::injectImplicitOperators(std::string &segment) {
     return prefix + token;
 }
 
-void GrunObject::interpretRelationship(std::string relationship)
+SpatialExponentValue GrunObject::interpretRelationship(std::string relationship)
 {
-	// output the relationship string unchanged
-	std::println("Relationship: {}",relationship);
-	// remove the whitespace from the relationship string
+	// rm whitespace from relationship string
 	relationship.erase(std::remove_if(relationship.begin(), relationship.end(), ::isspace), relationship.end());
 	
-	// split relationship into implied terms - matches numbers followed by one or more capital letters
+	// split relationship into implied terms - matches numbers and explicit operators followed by one or more capital letters, or the @ operator followed by numbers
 	std::regex splitOnObjectTokens(R"(([0-9.\/*+\-]+[A-Z]+)|(@[0-9.]+))");
-	// get split results
+
+	// split up relationship string using the regex
 	auto tokens_begin	= std::sregex_iterator(relationship.begin(), relationship.end(), splitOnObjectTokens);
 	auto tokens_end		= std::sregex_iterator();
 
@@ -1313,10 +1312,7 @@ void GrunObject::interpretRelationship(std::string relationship)
 		}
 	}
 
-	// output results
-	std::print("After Interpretation: ");
-	for (auto &processedSegment : segments) std::print("{}",processedSegment);
-	std::println("\nDetected Spatial Value: {}", static_cast<int>(totalRelationshipSV));
+	return totalRelationshipSV;
 }
 
 std::string GrunObject::substituteRelationshipTokens(const std::string& relationship) const

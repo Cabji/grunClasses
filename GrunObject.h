@@ -225,5 +225,5 @@ class GrunObject
 	std::string 			substituteRelationshipTokens(const std::string& relationship) const;
 	SpatialExponentValue	mapUnitToSpatialExponent(const std::string& unit) const;
 	std::string				injectImplicitOperators(std::string &segment);
-	void					interpretRelationship(std::string relationship);
+	SpatialExponentValue	interpretRelationship(std::string relationship);
 };
