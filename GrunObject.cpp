@@ -37,10 +37,10 @@ const std::unordered_map<std::string, SpatialExponentValue> GrunObject::property
  * 	 | **Triangle**		| Base			| Perp. Height	| Depth			|
  *   | **Circle**		| Radius		| Unused (0.0)	| Depth			|
  * @param typeName sets the ShapeType. Value must be valid. (See enum class ShapeType)
- * @param m_x the GrunObject'processedSegment 'x' value (Horizontal plane, direction 1)
- * @param m_y the GrunObject'processedSegment 'y' value (Horizontal plane, direction 2 - adjacent to m_x/direction 1 on the same plane)
- * @param m_z the GrunObject'processedSegment 'z' value (Vertical	 plane, direction 3 - adjacent to both m_x and m_y)
- * @param primaryMaterial the GrunObject'processedSegment primary material - this will eventually be a string value fed in from a database somewhere
+ * @param m_x the GrunObject's 'x' value (Horizontal plane, direction 1)
+ * @param m_y the GrunObject's 'y' value (Horizontal plane, direction 2 - adjacent to m_x/direction 1 on the same plane)
+ * @param m_z the GrunObject's 'z' value (Vertical	 plane, direction 3 - adjacent to both m_x and m_y)
+ * @param primaryMaterial the GrunObject's primary material - this will eventually be a string value fed in from a database somewhere
  * @param areaType sets the AreaType. Value must be valid, Horizontal or Vertical. (See enum class AreaType)
  * @throws invalid_argument - if provided ShapeType is unknown.
  * @throws invalid_argument - if x,y or z values are invalid for calculations (<= 0)
@@ -73,7 +73,7 @@ GrunObject::GrunObject(const std::string &typeName,
 	{
 		case ShapeType::Rectangle:
 		{
-			// calculate Rectangle'processedSegment data
+			// calculate Rectangle's data
 			double larger_side;			// for aspect ratio
 			double smaller_side;		// for aspect ratio
 			double aspectRatio;
@@ -124,16 +124,16 @@ GrunObject::GrunObject(const std::string &typeName,
 			
 			m_aspectRatio = aspectRatio;
 
-			// calculate volume of GrunObject - if any of these values are 0 the volume will be zero but that'processedSegment for the user to deal with
+			// calculate volume of GrunObject - if any of these values are 0 the volume will be zero but that's for the user to deal with
 			m_volume = m_x * m_y * m_z;
 			break;
 		}
 		case ShapeType::Triangle:
 		{
-			// calculate Triangle'processedSegment data
-			// a Triangle'processedSegment area is best calculated by using the Base and Perpendicular Height of the triangle. This eliminates the need to know angles and the length of all sides.
-			// therefore, in a GrunObject that is ShapeType::Triangle, m_x represents the Triangle'processedSegment Base, and m_y represents the Perpendicular Height (PH)
-			// m_z is the object'processedSegment Depth to make it, so it is a Triangular 'block', not a pyramid
+			// calculate Triangle's data
+			// a Triangle's area is best calculated by using the Base and Perpendicular Height of the triangle. This eliminates the need to know angles and the length of all sides.
+			// therefore, in a GrunObject that is ShapeType::Triangle, m_x represents the Triangle's Base, and m_y represents the Perpendicular Height (PH)
+			// m_z is the object's Depth to make it, so it is a Triangular 'block', not a pyramid
 			// we will also make the ShapeType::Triangle respect the AreaType
 
 			// calculate the area, determined by the AreaType
@@ -143,11 +143,11 @@ GrunObject::GrunObject(const std::string &typeName,
 		}
 		case ShapeType::Circle:
 		{
-			// calculate Circle'processedSegment data 
-			// The ShapeType::Circle uses m_x value as its _radius_. m_y is not used, and m_z is the circle'processedSegment Depth which creates a cylinder object in 3D.
-			// The Circle does not respect the AreaType value. It'processedSegment area is only ever calculated on the circular face of the Object.
+			// calculate Circle's data 
+			// The ShapeType::Circle uses m_x value as its _radius_. m_y is not used, and m_z is the circle's Depth which creates a cylinder object in 3D.
+			// The Circle does not respect the AreaType value. It's area is only ever calculated on the circular face of the Object.
 
-			// calculate the Circle'processedSegment data
+			// calculate the Circle's data
 			// area
 			m_area			= PI * m_x * m_x;
 			m_circumference	= PI * (2 * m_x);
@@ -198,11 +198,11 @@ int GrunObject::asInt(SpatialExponentValue unit) {
 }
 
 /**
- * @brief Adds a GrunItem to the GrunObject'processedSegment m_items
- * @param <name> item'processedSegment name/identifier
- * @param <relationship> SHN relationship this GrunItem instance has with it'processedSegment owning GrunObject
+ * @brief Adds a GrunItem to the GrunObject's m_items
+ * @param <name> item's name/identifier
+ * @param <relationship> SHN relationship this GrunItem instance has with it's owning GrunObject
  * @param quantityFormula formula applied to result of relationship to calculate a quantity of this Item (empty by default)
- * @param units item'processedSegment unit of measure ("unit(processedSegment)" by default)
+ * @param units item's unit of measure ("unit(s)" by default)
  * @param primaryLabourFormula formula applied to quantity of this Item to calculate Primary Labour quantity (empty by default)
  * @return true if successful, false if failure.
  */
@@ -216,7 +216,7 @@ bool GrunObject::addGrunItem(std::string name, std::string relationship, std::st
 }
 
 /**
- * @brief Calculates the aspect ratio of the GrunObject (if possible). Bases the aspect ratio calculation on the GrunObject'processedSegment AreaType value.
+ * @brief Calculates the aspect ratio of the GrunObject (if possible). Bases the aspect ratio calculation on the GrunObject's AreaType value.
  * @return The ratio of the longer side to the shorter side as a double (e.g., 1.5 for a 3x2 shape).
  * @throws std::invalid_argument if either dimension is zero, negative, or invalid.
  */
@@ -226,8 +226,8 @@ double GrunObject::getAspectRatio()
 }
 
 /**
- * @brief Gets the GrunObject'processedSegment name from member m_name
- * @return std::string containing the GrunObject'processedSegment name
+ * @brief Gets the GrunObject's name from member m_name
+ * @return std::string containing the GrunObject's name
  */
 std::string GrunObject::getObjectName()
 {
@@ -245,8 +245,8 @@ double GrunObject::getObjectProperty(const std::string propertyName)
 }
 
 /**
- * @brief Removes one (first found) or all GrunItems with the specified name from the GrunObject'processedSegment m_items.
- * @param itemName The name of the GrunItem(processedSegment) to remove.
+ * @brief Removes one (first found) or all GrunItems with the specified name from the GrunObject's m_items.
+ * @param itemName The name of the GrunItem(s) to remove.
  * @param removeAll If true, removes all items with the name; otherwise, removes only the first match found using iterative search.
  * @return The number of items removed.
  */
@@ -310,7 +310,7 @@ bool GrunObject::removeGrunItem(size_t index)
  */
 size_t GrunObject::removeGrunItem(std::vector<size_t> indices)
 {
-	// dev-note: this function removes multiple GrunItems in m_items as long as the item'processedSegment index value is valid.
+	// dev-note: this function removes multiple GrunItems in m_items as long as the item's index value is valid.
 	// it removes the items from m_items in reverse order.
 
 	// zero check
@@ -349,7 +349,7 @@ std::string GrunObject::getGrunItemListInfoAsString(const std::string dateFormat
 					 std::format("{:<8}",item._itemQuantityUnits.substr(0,8)) + " " +
 					 std::format("{:<10}","P.Labour: ") + 
 					 std::format("{:>6.2f}", item._itemPrimaryLabour) + 
-					 std::format("{:<8}"," hour(processedSegment) ") +
+					 std::format("{:<8}"," hour(s) ") +
 					 std::format("{:<14}","LKGWCalcTime: ") + 
 					 std::format("{:>}", item.getCalculatedTimeString(item._itemLKGWCalculated, dateFormat)) +
 					 "\n";
@@ -485,7 +485,7 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
 							// 1b. on any explicitly, user-defined math operators (+,-,/,*,^,√) - we may need to examine use of ^ and √ closer
 						// 2. between each split term, we must decide if we use an explicit operator, or an implicit operator
 						//	- our regex would ideally leave any explicit operators on the end of its trailing term so we might be able to pop explicit operators from the end of a term that is followed by an explicit operator)
-						// 3. define the logic that decides if we should increase the relationship'processedSegment Spatial Exponent Value and calculate the Spatial Exponent Value (the Spatial Unit)
+						// 3. define the logic that decides if we should increase the relationship's Spatial Exponent Value and calculate the Spatial Exponent Value (the Spatial Unit)
 						// 4. correctly calculate the Spatial Value from the relationship string so it matches the calculated Spatial Exponent Value.
 
 				// 2. to get the Item Qty value
@@ -498,7 +498,7 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
     {
         // Direct Quantity calculation (Left-to-Right precedence)
         // This is the evaluator that handles "8*2.5+1"
-        std::regex direct_calculation_pattern("^\\processedSegment*([-+]?\\d*\\.?\\d+)\\processedSegment*((?:[\\+\\-\\*\\/]\\processedSegment*\\d*\\.?\\d+)*)\\processedSegment*$");
+        std::regex direct_calculation_pattern("^\\s*([-+]?\\d*\\.?\\d+)\\s*((?:[\\+\\-\\*\\/]\\s*\\d*\\.?\\d+)*)\\s*$");
         std::smatch full_match;
         
         if (std::regex_match(item._relationship, full_match, direct_calculation_pattern))
@@ -507,7 +507,7 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
             double result = std::stod(full_match[1].str());
             std::string remaining_terms = full_match[2].str();
 
-            std::regex inner_term_pattern("([\\+\\-\\*\\/])\\processedSegment*(\\d*\\.?\\d+)");
+            std::regex inner_term_pattern("([\\+\\-\\*\\/])\\s*(\\d*\\.?\\d+)");
             
             auto term_begin = std::sregex_iterator(remaining_terms.begin(), remaining_terms.end(), inner_term_pattern);
             auto term_end = std::sregex_iterator();
@@ -579,7 +579,7 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
         // 5. Evaluate the substituted expression using the Direct Quantity logic.
         // We re-use the evaluation logic here, which fixes the multiple term bug (BUG 3).
         
-        std::regex direct_calculation_pattern("^\\processedSegment*([-+]?\\d*\\.?\\d+)\\processedSegment*((?:[\\+\\-\\*\\/]\\processedSegment*\\d*\\.?\\d+)*)\\processedSegment*$");
+        std::regex direct_calculation_pattern("^\\s*([-+]?\\d*\\.?\\d+)\\s*((?:[\\+\\-\\*\\/]\\s*\\d*\\.?\\d+)*)\\s*$");
         std::smatch evaluation_match;
         double relationQuantity = 0.0;
         
@@ -588,7 +588,7 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
             relationQuantity = std::stod(evaluation_match[1].str());
             std::string remaining_terms = evaluation_match[2].str();
 
-            std::regex inner_term_pattern("([\\+\\-\\*\\/])\\processedSegment*(\\d*\\.?\\d+)");
+            std::regex inner_term_pattern("([\\+\\-\\*\\/])\\s*(\\d*\\.?\\d+)");
             
             auto term_begin = std::sregex_iterator(remaining_terms.begin(), remaining_terms.end(), inner_term_pattern);
             auto term_end = std::sregex_iterator();
@@ -650,8 +650,8 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
     // --- STEP 2: APPLY itemQuantityFormula (CALCULATE _itemQuantity) (Existing Logic) ---
     
     // ... (This section remains UNCHANGED from the previous response) ...
-    std::regex invalid_formula_char_pattern("[^0-9.\\+\\-\\*\\/\\processedSegment]"); 
-    std::regex formula_pattern("\\processedSegment*([\\+\\-\\*\\/])\\processedSegment*(\\d*\\.?\\d+)");
+    std::regex invalid_formula_char_pattern("[^0-9.\\+\\-\\*\\/\\s]"); 
+    std::regex formula_pattern("\\s*([\\+\\-\\*\\/])\\s*(\\d*\\.?\\d+)");
     std::smatch formula_match;
 
     if (shn_success)
@@ -708,8 +708,8 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
     // ...
     // Note: Due to size constraints, this block is omitted here but should be included in your implementation.
     
-    std::regex invalid_labour_formula_char_pattern("[^0-9.\\+\\-\\*\\/\\processedSegment]"); 
-    std::regex labour_formula_pattern("\\processedSegment*([\\+\\-\\*\\/])\\processedSegment*(\\d*\\.?\\d+)");
+    std::regex invalid_labour_formula_char_pattern("[^0-9.\\+\\-\\*\\/\\s]"); 
+    std::regex labour_formula_pattern("\\s*([\\+\\-\\*\\/])\\s*(\\d*\\.?\\d+)");
     std::smatch labour_formula_match;
 
     if (item._itemPrimaryLabourFormula.empty()) {
@@ -783,13 +783,13 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
 //     item._itemQuantity = 0.0;
 //     item._itemPrimaryLabour = 0.0;
 //     bool shn_success = false;
-// 	// calculate the relationship'processedSegment spatial exponent and assign it to the GrunItem'processedSegment _spatialExponentValue
+// 	// calculate the relationship's spatial exponent and assign it to the GrunItem's _spatialExponentValue
 // 	item._spatialExponentValue = calculateRelationshipSpatialExponent(item._relationship);
 
 //     // --- STEP 1: SHN CONVERSION (CALCULATE _relationQuantity) ---
     
 //     // 2. Add STRICT NEGATIVE VALIDATION
-//     std::regex invalid_relationship_char_pattern("[^0-9.LWDAVC\\+\\-\\@\\*\\/\\processedSegment]"); 
+//     std::regex invalid_relationship_char_pattern("[^0-9.LWDAVC\\+\\-\\@\\*\\/\\s]"); 
 
 //     if (std::regex_search(item._relationship, invalid_relationship_char_pattern))
 //     {
@@ -804,7 +804,7 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
 //     if (!std::regex_search(item._relationship, valid_relationship_tokens))
 //     {
 //         // Direct Quantity calculation (Left-to-Right precedence)
-//         std::regex direct_calculation_pattern("^\\processedSegment*(\\d*\\.?\\d+)\\processedSegment*((?:[\\+\\-\\*\\/]\\processedSegment*\\d*\\.?\\d+)*)\\processedSegment*$");
+//         std::regex direct_calculation_pattern("^\\s*(\\d*\\.?\\d+)\\s*((?:[\\+\\-\\*\\/]\\s*\\d*\\.?\\d+)*)\\s*$");
 //         std::smatch full_match;
         
 //         if (std::regex_match(item._relationship, full_match, direct_calculation_pattern))
@@ -812,7 +812,7 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
 //             double result = std::stod(full_match[1].str());
 //             std::string remaining_terms = full_match[2].str();
 
-//             std::regex inner_term_pattern("([\\+\\-\\*\\/])\\processedSegment*(\\d*\\.?\\d+)");
+//             std::regex inner_term_pattern("([\\+\\-\\*\\/])\\s*(\\d*\\.?\\d+)");
             
 //             auto term_begin = std::sregex_iterator(remaining_terms.begin(), remaining_terms.end(), inner_term_pattern);
 //             auto term_end = std::sregex_iterator();
@@ -856,8 +856,8 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
 //     }
 //     else // --- SHN Parsing Logic (Runs if placeholders LWDAVC are found) ---
 //     {
-//         std::regex outer_shn_pattern("\\processedSegment*([\\+\\-]\\processedSegment*)?([^@\\processedSegment\\+\\-]+)(?:@(\\d*\\.?\\d+))?");
-//         std::regex inner_term_pattern("(\\d*\\.?\\d*)\\processedSegment*([LWDAVC])");
+//         std::regex outer_shn_pattern("\\s*([\\+\\-]\\s*)?([^@\\s\\+\\-]+)(?:@(\\d*\\.?\\d+))?");
+//         std::regex inner_term_pattern("(\\d*\\.?\\d*)\\s*([LWDAVC])");
         
 //         std::string relationship = item._relationship;
 //         double relationResult = 0.0;
@@ -921,8 +921,8 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
 //     // --- STEP 2: APPLY itemQuantityFormula (CALCULATE _itemQuantity) ---
     
 // 	// dev-note: the regexes beginning with ^ are negating which means "not the following"
-//     std::regex invalid_formula_char_pattern("[^0-9.\\+\\-\\*\\/\\processedSegment]"); 
-//     std::regex formula_pattern("\\processedSegment*([\\+\\-\\*/])\\processedSegment*(\\d*\\.?\\d+)");
+//     std::regex invalid_formula_char_pattern("[^0-9.\\+\\-\\*\\/\\s]"); 
+//     std::regex formula_pattern("\\s*([\\+\\-\\*/])\\s*(\\d*\\.?\\d+)");
 //     std::smatch formula_match;
 
 //     // If SHN succeeded OR Direct Quantity was used, apply formula.
@@ -1030,7 +1030,7 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
 //                      item._itemName, item._itemPrimaryLabourFormula);
 //     }
     
-// 	// the GrunItem'processedSegment data has successfully calculated, so update its LKGWCalculated value to now().
+// 	// the GrunItem's data has successfully calculated, so update its LKGWCalculated value to now().
 // 	item._itemLKGWCalculated = std::chrono::system_clock::now();
 //     return shn_success; 
 // }
@@ -1161,7 +1161,7 @@ int GrunObject::calculateGrunObjectTotals()
 			switch (i)
 			{
 				case 0:
-					// Case 0 (Labour Total): Aggregate everything into a single grand total, keyed by the object'processedSegment name.
+					// Case 0 (Labour Total): Aggregate everything into a single grand total, keyed by the object's name.
 					aggregationKey	= m_name;
 					itemQuantity	= item._itemPrimaryLabour;
 					itemUnit		= item._itemPrimaryLabourUnits;
@@ -1197,7 +1197,7 @@ int GrunObject::calculateGrunObjectTotals()
 
 				// Set the unit: Only set it if the entry is currently using the default/empty unit.
 				// This ensures the unit from the first item aggregated is used for the key.
-				if (entry._unit == "unit(processedSegment)" || entry._unit.empty()) {
+				if (entry._unit == "unit(s)" || entry._unit.empty()) {
 					entry._unit = itemUnit;
 				}
 			}
@@ -1249,7 +1249,7 @@ std::string GrunObject::injectImplicitOperators(std::string &segment) {
     // 4. Check if we need to inject '*'
     char lastChar = prefix.back();
     
-    // If it ends in a digit or decimal, it'processedSegment shorthand. Inject '*'
+    // If it ends in a digit or decimal, it's shorthand. Inject '*'
     if (std::isdigit(static_cast<unsigned char>(lastChar)) || lastChar == '.') {
         return prefix + "*" + token;
     }
@@ -1365,7 +1365,7 @@ std::string GrunObject::substituteRelationshipTokens(const std::string& relation
     // After substitution, the string is now just numbers and operators (e.g., "2*30 + 1*3.1 @0.6")
     // Note: The "Direct Quantity" evaluator only handles +,-,*,/ and numbers.
     
-    // We MUST replace the implicit multiplication/addition from the user'processedSegment SHN style:
+    // We MUST replace the implicit multiplication/addition from the user's SHN style:
     // This step is crucial: replace '2.5L' with '2.5 * L_val', '1L1W' with '1*L_val + 1*W_val'
     // Since we already did the substitution, we are left with: "2(30) + 1(3.1) @0.6"
     
