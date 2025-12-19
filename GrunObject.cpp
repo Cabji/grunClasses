@@ -554,7 +554,7 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
     else // --- SHN DIMENSIONAL PARSING LOGIC (WITH NEW SUBSTITUTION) ---
     {
         // 3. Determine Dimensional Context (ISV and OSV) - (UNCHANGED)
-        item._spatialExponentValue = calculateRelationshipSpatialExponent(item._relationship);
+        //item._spatialExponentValue = calculateRelationshipSpatialExponent(item._relationship);
         item._outputSpatialExponentValue = mapUnitToSpatialExponent(item._itemQuantityUnits);
         
         if (static_cast<int>(item._spatialExponentValue) < static_cast<int>(item._outputSpatialExponentValue))
@@ -1228,34 +1228,34 @@ SpatialExponentValue GrunObject::mapUnitToSpatialExponent(const std::string& uni
     return SpatialExponentValue::None;
 }
 
+// decides where implied multiplication operators should be inserted into a segement/term from a relationship string
 std::string GrunObject::injectImplicitOperators(std::string &segment) {
-    // 1. Find the start of the Token (the first A-Z character)
+    // find the first A-Z character
     auto token_start = std::find_if(segment.begin(), segment.end(), [](char c) {
         return std::isupper(static_cast<unsigned char>(c));
     });
 
-    // If no token (like "@1.2"), return as is
+    // if no token (like "@1.2") found, return as is
     if (token_start == segment.end()) return segment;
 
-    // 2. Separate prefix and token
+    // separate prefix and token
     std::string prefix(segment.begin(), token_start);
     std::string token(token_start, segment.end());
 
-    // 3. Handle empty prefix (e.g., "L" -> "1*L")
+    // handle empty prefix (e.g., "L" -> "1*L")
     if (prefix.empty()) {
         return "1*" + token;
     }
 
-    // 4. Check if we need to inject '*'
+    // check if we need to inject '*'
     char lastChar = prefix.back();
     
-    // If it ends in a digit or decimal, it's shorthand. Inject '*'
+    // If it ends in a digit or decimal, inject '*'
     if (std::isdigit(static_cast<unsigned char>(lastChar)) || lastChar == '.') {
         return prefix + "*" + token;
     }
 
-    // If it ends in an explicit operator (/, +, -, *), just join them
-    // Example: "1.5/L" -> "1.5/L"
+    // if it ends in an explicit operator (/, +, -, *), just join them, example: "1.5/L" -> "1.5/L"
     return prefix + token;
 }
 
@@ -1264,51 +1264,66 @@ SpatialExponentValue GrunObject::interpretRelationship(std::string relationship)
 	// rm whitespace from relationship string
 	relationship.erase(std::remove_if(relationship.begin(), relationship.end(), ::isspace), relationship.end());
 	
-	// split relationship into implied terms - matches numbers and explicit operators followed by one or more capital letters, or the @ operator followed by numbers
-	std::regex splitOnObjectTokens(R"(([0-9.\/*+\-]+[A-Z]+)|(@[0-9.]+))");
+	// split relationship into implied terms - matches one or more capital letter(s) optionally preceded by numbers/explicit operators, or the @ operator followed by numbers
+	std::regex splitOnObjectTokens(R"(([0-9.\/*+\-]*[A-Z]+)|(@[0-9.]+))");
 
 	// split up relationship string using the regex
-	auto tokens_begin	= std::sregex_iterator(relationship.begin(), relationship.end(), splitOnObjectTokens);
-	auto tokens_end		= std::sregex_iterator();
+	auto segments_begin	= std::sregex_iterator(relationship.begin(), relationship.end(), splitOnObjectTokens);
+	auto segments_end		= std::sregex_iterator();
 
-	std::vector<std::string> segments;
-	SpatialExponentValue totalRelationshipSV = SpatialExponentValue::None;
+	std::vector<std::string> segments;										// to hold all the segments
+	SpatialExponentValue totalRelationshipSV = SpatialExponentValue::None;	// to hold the return value
 
-	// store segments in vector of strings
-	for (std::sregex_iterator i = tokens_begin; i != tokens_end; ++i)
+	// loop through resulting segments of regex analysis
+	for (std::sregex_iterator i = segments_begin; i != segments_end; ++i)
 	{
+		// push current segment into vector of strings
 		std::string rawSegment = i->str();
 		std::string processedSegment = injectImplicitOperators(rawSegment);
 		segments.push_back(processedSegment);
 
 		// calculate spatial value for this segment
-		int segmentExponentSum = 0;
-
+		int segmentExponentTotal = 0;
 		std::regex tokenFinder("[LWDAVC]");
 		auto t_begin	= std::sregex_iterator(processedSegment.begin(), processedSegment.end(), tokenFinder);
 		auto t_end		= std::sregex_iterator();
-
 		for (std::sregex_iterator it = t_begin; it != t_end; ++it)
 		{
-			// inside a segment, multiplication is the implied operator, so we sum the exponents
-			segmentExponentSum += static_cast<int>(getTokenExponent(it->str()));
+			// inside a segment, multiplication is the implied operator, so we add the exponent value to the segment's exponent total
+			segmentExponentTotal += static_cast<int>(getTokenExponent(it->str()));
 		}
 
-		// check for explicit operator - look for it in the RAW segment
-		// if the user explicitly used an operator, treat the coefficient as a dimension in 3D space (+1 SV)
-		bool hasExplicitOperator = rawSegment.find_first_of("*/+-") != std::string::npos;
+		// check for explicit operator - look for it in rawSegment because processedSegment has injected implied operators
+		// if the user explicitly used an operator, treat the coefficient as a dimension in 3D space, which adds or removes the SpatialExponentValue of the coefficient to the segmentExponentTotal
+		size_t opPos = rawSegment.find_first_of("*/+-@");
+		bool hasExplicitOperator = (opPos != std::string::npos);
 		if (hasExplicitOperator)
-		{
-			segmentExponentSum += 1;
-			std::println("  > Explicit operator detected in '{}'. Increasing Spatial Value.", rawSegment);
-		}
+{
+    char foundOp = rawSegment[opPos];
+    if (foundOp == '/' || foundOp == '@')
+    {
+		// dividing reduces the segmentExponentTotal
+        segmentExponentTotal -= 1;
+        std::println("  {:<15} > Reductive operator '{}' detected. Decreasing Spatial Value.", relationship,foundOp);
+    }
+    else if (foundOp == '*') 
+    {
+        // multiplying increases the segmentExponentTotal
+        segmentExponentTotal += 1;
+        std::println("  {:<15} > Multiplicative operator '*' detected. Increasing Spatial Value.",relationship);
+    }
+    else 
+    {
+        // adding/subtracting do nothing
+        std::println("  {:<15} > Additive operator '{}' detected. Spatial Value remains unchanged.", relationship, foundOp);
+    }
+}
 
-		// the relationship takes the dimension of its highest component
-		if (segmentExponentSum > static_cast<int>(totalRelationshipSV))
+		// the return value takes the highest segmentExponentTotal found from all the segments, ensuring the result is within 0-3
+		int safeSegmentExponentTotal = std::clamp(segmentExponentTotal, 0, 3);
+		if (safeSegmentExponentTotal > static_cast<int>(totalRelationshipSV)) 
 		{
-			// max out at Volume (3) so we don't exceed the enum range if someone writes A*A for example
-			int clampedValue = std::min(segmentExponentSum, 3);
-			totalRelationshipSV = static_cast<SpatialExponentValue>(clampedValue);
+			totalRelationshipSV = static_cast<SpatialExponentValue>(safeSegmentExponentTotal);
 		}
 	}
 
@@ -1454,11 +1469,12 @@ SpatialExponentValue GrunObject::calculateRelationshipSpatialExponent(const std:
     return static_cast<SpatialExponentValue>(maxExponent);
 }
 
+// returns a SpatialExponentValue (None,Linear,Area,Volume) that corressponds to the token given to the function
 SpatialExponentValue GrunObject::getTokenExponent(std::string_view token)
 {
     if (token == "V") return SpatialExponentValue::Volume;
     if (token == "A") return SpatialExponentValue::Area;
-    if (token == "L" || token == "W" || token == "D" || 
-        token == "P" || token == "C") return SpatialExponentValue::Linear;   
+    if (token == "L"	|| token == "W"	|| token == "D" || 
+        token == "PH"	|| token == "C"	|| token == "R") return SpatialExponentValue::Linear;   
     return SpatialExponentValue::None;
 }
