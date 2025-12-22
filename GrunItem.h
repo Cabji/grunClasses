@@ -39,6 +39,7 @@ class GrunItem
 	std::string 							_itemName					= "";		// required value on construction
 	std::string 							_relationship				= "";		// required value on construction
 	bool									_isCompoundRelationship		= false;	// user does not set this, the code determines this
+	std::string								_interprettedRelationship	= "";		// created by GrunObject::interpretRelationship()
 	SpatialExponentValue					_spatialExponentValue		= SpatialExponentValue::None;		// what the item's relationship calculates to Spatially
 	double									_relationQuantity			= 0.0;
 	SpatialExponentValue					_outputSpatialExponentValue	= SpatialExponentValue::None;		// what the item's unit requires dimensionally
