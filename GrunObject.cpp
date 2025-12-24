@@ -341,10 +341,10 @@ std::string GrunObject::getGrunItemListInfoAsString(const std::string dateFormat
 	{
 		returnVal += std::format("{:<39}",item._itemName.substr(0,40)) +
 					 std::format("{:<17}","Rel: " + item._relationship) + 
-					 std::format("{:<13}","SV: " + spatialExponentValueToString(item._spatialExponentValue)) + 
-					 std::format("{:<9}","Rel.Qnt: ") + 
+					 std::format("{:<13}","SU: " + spatialExponentValueToString(item._calculatedSpatialUnit)) + 
+					 std::format("{:<9}","Spa.Qty: ") + 
 					 std::format("{:>7.2f}",item._relationQuantity) + " " +
-					 std::format("{:<10}","Item.Qnt: ") + 
+					 std::format("{:<10}","Item.Qty: ") + 
 					 std::format("{:>7.2f}",item._itemQuantity) + " " +
 					 std::format("{:<8}",item._itemQuantityUnits.substr(0,8)) + " " +
 					 std::format("{:<10}","P.Labour: ") + 
@@ -447,38 +447,40 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
         return false;
     }
 
-	// interpret the item's relationship string & its Spatial Exponent Value (0 None, 1 Linear, 2 Area, 3 Volume)
-	item._spatialExponentValue = interpretRelationship(item);
-	// determine the output spatial context based on the Item's units (eg: m3 -> Volume, for comparison against the calculated spatial exponent value)
-	item._outputSpatialExponentValue = mapUnitToSpatialExponent(item._itemQuantityUnits);
-	item._isCompoundRelationship = (static_cast<int>(item._spatialExponentValue) < static_cast<int>(item._outputSpatialExponentValue));
+	// interpret the item's relationship string & calculate its Spatial Value based on its relationship to the GrunObject (0 None, 1 Linear, 2 Area, 3 Volume)
+	// dev-note: interpretRelationship() updates a few values that are used below in this method
+	item._calculatedSpatialUnit	= interpretRelationship(item);
+	item._itemQuantitySpatialUnit	= mapUnitToSpatialExponent(item._itemQuantityUnits);
+	item._isCompoundRelationship	= (static_cast<int>(item._calculatedSpatialUnit) < static_cast<int>(item._itemQuantitySpatialUnit));
 
-	// calculate the Rel. Qty
-	std::string subBase		= substituteRelationshipTokens(item._baseExpression);
-	std::println("baseExpression: {} subBase: {}",item._baseExpression, subBase);
-	item._relationQuantity	= evaluateArithmetic(subBase);
-	// calculate the Item Qty
-	std::string subFull		= substituteRelationshipTokens(item._interprettedRelationship);
-	// std::println("subFull: {}",subFull);
-	item._itemQuantity 		= evaluateArithmetic(subFull);
+	std::string mathBaseExpr		= substituteRelationshipTokens(item._baseExpression);			// mathBaseExpr is the GrunItem's _baseExpression with the GrunObject Tokens converted to their numeric values
+	item._relationQuantity			= evaluateArithmetic(mathBaseExpr);								// _relationQuantity is calculated from the base expression (no explicit, compounding, terms are used for this)
+
+	std::string mathFullExpr		= substituteRelationshipTokens(item._interprettedRelationship);	// mathFullExpr is the GrunItem's _interprettedRelationship with the GrunObject Tokens converted to their numeric values
+	item._itemQuantity 				= evaluateArithmetic(mathFullExpr);									// _itemQuantity is calculated from the full interpretted relationship
 
 	// handle compound relationships (eg: A -> V)
 	if (item._isCompoundRelationship)
 	{
-		int diff = static_cast<int>(item._outputSpatialExponentValue) - static_cast<int>(item._spatialExponentValue);
+		std::println("Item '{}' has a compound relationship.",item._itemName);
+		int diff = static_cast<int>(item._itemQuantitySpatialUnit) - static_cast<int>(item._calculatedSpatialUnit);
 		// check for explicit number/factor in the string
 		bool explicitFactor	= (item._relationship.find_first_of("0123456789.") != std::string::npos);
 
-		if (diff == 1 && item._spatialExponentValue == SpatialExponentValue::Area && !explicitFactor)
+		if (diff == 1 && item._calculatedSpatialUnit == SpatialExponentValue::Area && !explicitFactor)
 		{
 			item._relationQuantity *= m_z;
 			item._itemQuantity *= m_z;
 		}
 	}
+	else
+	{
+		item._itemQuantity			= applyFormula(item._relationQuantity, item._itemQuantityFormula, item._itemName, "Item Qty");
+	}
 
-	// calculate primary labour and update LKGW calculated value
-	item._itemPrimaryLabour		= applyFormula(item._itemQuantity, item._itemPrimaryLabourFormula, item._itemName, "Primary Labour");
-	item._itemLKGWCalculated	= std::chrono::system_clock::now();
+	// calculate item qty, primary labour and update LKGW calculated value
+	item._itemPrimaryLabour			= applyFormula(item._itemQuantity, item._itemPrimaryLabourFormula, item._itemName, "Primary Labour");
+	item._itemLKGWCalculated		= std::chrono::system_clock::now();
 	return true;
 }
 
@@ -571,13 +573,16 @@ SpatialExponentValue GrunObject::mapUnitToSpatialExponent(const std::string& uni
 }
 
 // decides where implied multiplication operators should be inserted into a segement/term from a relationship string
-std::string GrunObject::injectImplicitOperators(std::string &segment) {
-    // find the first A-Z character
+std::string GrunObject::injectImplicitOperators(std::string &segment) 
+{
+	// data acquisition
+	// token_start holds the first GrunObject Token in the segment (term) if one is found
     auto token_start = std::find_if(segment.begin(), segment.end(), [](char c) {
         return std::isupper(static_cast<unsigned char>(c));
     });
 
-    // if no token (like "@1.2") found, return as is
+    // zero-check
+	// if no GrunObject Token is found, (the segment is a direct quantity like "8" or an explicit operator with a trailing value like "@1.2") return it, as is
     if (token_start == segment.end()) return segment;
 
     // separate prefix and token
@@ -592,40 +597,44 @@ std::string GrunObject::injectImplicitOperators(std::string &segment) {
     // check if we need to inject '*'
     char lastChar = prefix.back();
     
-    // If it ends in a digit or decimal, inject '*'
+    // if lastChar is a digit or decimal, inject '*'
     if (std::isdigit(static_cast<unsigned char>(lastChar)) || lastChar == '.') {
         return prefix + "*" + token;
     }
 
-    // if it ends in an explicit operator (/, +, -, *), just join them, example: "1.5/L" -> "1.5/L"
+    // if it ends in an anything else (assumed: /, +, -, *), join the pieces back together, example: "1.5/L" -> "1.5/L"
     return prefix + token;
 }
 
 SpatialExponentValue GrunObject::interpretRelationship(GrunItem &item)
 {
-	// make temp copy of relationship string from the item & rm whitespace from temp relationship string
-	std::string relationship = item._relationship;
-	relationship.erase(std::remove_if(relationship.begin(), relationship.end(), ::isspace), relationship.end());
+	// 0. data allocation/acquisition
+	std::string 				relationship		= item._relationship;			// copy of the item's relationship string (so that the end user's whitespace doesn't get affected)
+	SpatialExponentValue		totalRelationshipSV	= SpatialExponentValue::None;	// return value
+	std::string 				baseExpr			= "";							// holds the 'base expression' (used to calculate the Spatial 'Rel. Qty')
+	std::string					modifierExpr		= "";							// holds the 'modifier expression' (used to compound the Spatial Calculation directly into an Item Qty value - usually this will be for LCIs explicitly using the @ operator)
+	bool						isFirstSegment		= true;
 	
-	// split relationship into implied terms - matches one or more capital letter(s) optionally preceded by numbers/explicit operators, or the @ operator followed by numbers
-	std::regex splitOnObjectTokens(R"(([0-9.\/*+\-]*[A-Z]*)|(@[0-9.]+))");
+	// remove whitespace from relationship for processing - whitespace is meaningless, but we want to preserve it in the UI for the end-user
+	relationship.erase(std::remove_if(relationship.begin(), relationship.end(), ::isspace), relationship.end());
 
-	// split up relationship string using the regex
+	// 1. split relationship into implied terms. implied terms are defined by the following regex
+	// 		regex looks for: any or no explicit compounding operators, followed by
+	//						 any or no numbers, followed by
+	//						 any or no GrunObject Tokens
+	// dev-note: explicit operators take precedence and if found, define the left-most side of a term
+	std::regex splitOnObjectTokens(R"([\/*+\-@]*[0-9.]*[A-Z]*)");
 	auto segments_begin		= std::sregex_iterator(relationship.begin(), relationship.end(), splitOnObjectTokens);
 	auto segments_end		= std::sregex_iterator();
 
-	SpatialExponentValue		totalRelationshipSV	= SpatialExponentValue::None;	// to hold the return value
-	std::string 				baseExpr			= "";
-	std::string					modifierExpr		= "";
-	bool						isFirstSegment		= true;
-	std::string					interprettedExpr	= "";
-
-	// loop through segments of regex analysis
+	// loop through each term
 	for (std::sregex_iterator i = segments_begin; i != segments_end; ++i)
 	{
-		std::string	rawSegment			= i->str();
-		std::string	processedSegment	= injectImplicitOperators(rawSegment);
-		std::string	connection			= "";
+		// data acqusition
+		std::string	rawSegment			= i->str();								// rawSegment is the current term being processed
+		std::string	processedSegment	= injectImplicitOperators(rawSegment);	// processedSegment is the rawSegment (current term being processed) with implicit operators injected into it
+		std::string	connection			= "";									// connection is used to insert implicit addition operators between terms in the relationship string
+
 		if (!isFirstSegment && !rawSegment.empty())
 		{
 			char firstChar = rawSegment[0];
@@ -635,14 +644,23 @@ SpatialExponentValue GrunObject::interpretRelationship(GrunItem &item)
 			}
 		}
 
+		// check for explicit operators and handle them accordingly
 		if (rawSegment.starts_with('@'))
 		{
+			// the @ operator is a special explicit operator. It is used to calculate Lineally Centred Items. It allows the end user to directly calculate the Item Qty without using a GrunItem::_itemQuantityFormula. This means it creates a 'modifierExpression' which will NOT be used in the Spatial Value calculation
 			std::string val	= rawSegment.substr(1);
 			modifierExpr = "/" + val + "+1";
 		}
+		else if (rawSegment.starts_with('/') || rawSegment.starts_with('*') || rawSegment.starts_with('-') || rawSegment.starts_with('+'))
+		{
+			// if we're in here it means the user has used an explicit, standard math, operator. When this happens, we have to use the explicit operator OUTSIDE of it's trailing term's parentheses. So the operator must be placed at the left-most character of the term, THEN the opening parenthesis, then the term, then the closing parenthesis
+			connection = rawSegment.substr(0,1);	// make the leading, explicit operator the connection character
+			rawSegment.erase(0,1);					// pop the leading, explicit operator off the term
+		}
 		else
 		{
-			baseExpr += connection + "(" + processedSegment + ")";
+			if (!processedSegment.empty())
+				baseExpr += connection + "(" + processedSegment + ")";
 			isFirstSegment = false;
 		}
 
@@ -701,7 +719,7 @@ SpatialExponentValue GrunObject::interpretRelationship(GrunItem &item)
 	{
 		item._interprettedRelationship = baseExpr;
 	}
-	item._spatialExponentValue = totalRelationshipSV;
+	item._calculatedSpatialUnit = totalRelationshipSV;
 	return totalRelationshipSV;
 }
 
