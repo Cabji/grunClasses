@@ -339,7 +339,7 @@ std::string GrunObject::getGrunItemListInfoAsString(const std::string dateFormat
 	if (!m_items.empty()) { returnVal = "GrunItems in Element '" + m_name +"'\n"; }
 	for (auto item : m_items)
 	{
-		returnVal += std::format("{:<40}",item._itemName.substr(0,40)) +
+		returnVal += std::format("{:<39}",item._itemName.substr(0,40)) +
 					 std::format("{:<17}","Rel: " + item._relationship) + 
 					 std::format("{:<13}","SV: " + spatialExponentValueToString(item._spatialExponentValue)) + 
 					 std::format("{:<9}","Rel.Qnt: ") + 
@@ -405,6 +405,28 @@ std::string GrunObject::getGrunObjectTotalsInfoAsString() const
 	return ss.str();
 }
 
+double GrunObject::applyFormula(double lhs, const std::string &formula, const std::string &itemName, const std::string &type)
+{
+	if (formula.empty()) return lhs;
+
+	std::regex formula_pattern("\\s*([\\+\\-\\*\\/])\\s*(\\d*\\.?\\d+)");
+	std::smatch match;
+
+	if (std::regex_match(formula, match, formula_pattern))
+	{
+		char op = match[1].str()[0];
+		double val = std::stod(match[2].str());
+		switch (op)
+		{
+			case '+': return lhs + val;
+			case '-': return lhs - val;
+			case '*': return lhs * val;
+			case '/': return (val != 0) ? lhs / val : lhs;
+		}
+	}
+	return lhs;
+}
+
 bool GrunObject::calculateGrunItemData(GrunItem &item)
 {
     // Define Width and Depth based on AreaType - these may no be needed
@@ -415,7 +437,6 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
     item._relationQuantity = 0.0;
     item._itemQuantity = 0.0;
     item._itemPrimaryLabour = 0.0;
-    bool shn_success = false;
 
 	// zero check - abort if invalid tokens are found in the _raw_ relationship string
 	std::regex invalid_relationship_char_pattern("[^0-9.LWDAVC\\+\\-\\@\\*\\/\\s]"); 
@@ -427,744 +448,39 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
     }
 
 	// interpret the item's relationship string & its Spatial Exponent Value (0 None, 1 Linear, 2 Area, 3 Volume)
-	interpretRelationship(item);
-	// determine the output spatial context based on the Item's units (eg: m3 -> Volume)
+	item._spatialExponentValue = interpretRelationship(item);
+	// determine the output spatial context based on the Item's units (eg: m3 -> Volume, for comparison against the calculated spatial exponent value)
 	item._outputSpatialExponentValue = mapUnitToSpatialExponent(item._itemQuantityUnits);
 	item._isCompoundRelationship = (static_cast<int>(item._spatialExponentValue) < static_cast<int>(item._outputSpatialExponentValue));
 
-	// token substitution on the _interpretted_ relationship string
-	std::string substitutedExpr = substituteRelationshipTokens(item._interprettedRelationship);
-	
-	// arithmetic evaluation
-	std::regex	match_pattern("^\\s*([-+]?\\d*\\.?\\d+)\\s*((?:[\\+\\-\\*\\/]\\s*\\d*\\.?\\d+)*)\\s*$");
-	std::smatch	base_match;
+	// calculate the Rel. Qty
+	std::string subBase		= substituteRelationshipTokens(item._baseExpression);
+	std::println("baseExpression: {} subBase: {}",item._baseExpression, subBase);
+	item._relationQuantity	= evaluateArithmetic(subBase);
+	// calculate the Item Qty
+	std::string subFull		= substituteRelationshipTokens(item._interprettedRelationship);
+	// std::println("subFull: {}",subFull);
+	item._itemQuantity 		= evaluateArithmetic(subFull);
 
-	if (std::regex_match(substitutedExpr, base_match, match_pattern))
+	// handle compound relationships (eg: A -> V)
+	if (item._isCompoundRelationship)
 	{
-		double		currentResult	= std::stod(base_match[1].str());
-		std::string	remainingTerms	= base_match[2].str();
+		int diff = static_cast<int>(item._outputSpatialExponentValue) - static_cast<int>(item._spatialExponentValue);
+		// check for explicit number/factor in the string
+		bool explicitFactor	= (item._relationship.find_first_of("0123456789.") != std::string::npos);
 
-		std::regex inner_term_pattern("([\\+\\-\\*\\/])\\s*(\\d*\\.?\\d+)");
-		auto term_begin	= std::sregex_iterator(remainingTerms.begin, remainingTerms.end, inner_term_pattern);
-		auto term_end	= std::sregex_iterator();
-
-		for (std::sregex_iterator j = term_begin; j != term_end; ++j)
+		if (diff == 1 && item._spatialExponentValue == SpatialExponentValue::Area && !explicitFactor)
 		{
-			std::smatch	inner_match	= *j;
-			char		op			= inner_match[1].str()[0];
-			double		value		= std::stod(inner_match[2].str());
-
-			switch (op)
-			{
-				case '+': currentResult += value; break;
-				case '-': currentResult -= value; break;
-				case '*': currentResult *= value; break;
-				case '/': 
-					if (value != 0.0) currentResult /= value; 
-					else std::println("dev-output: Division by zero in '{}'",item._itemName);
-					break;
-			}
+			item._relationQuantity *= m_z;
+			item._itemQuantity *= m_z;
 		}
-		item._relationQuantity = currentResult;
-		shn_success = true;
-	}
-	else
-	{
-		std::println("dev-output: {} failed math evaluation: '{}'",item._itemName, substitutedExpr);
-		return false;
 	}
 
-	
-
-    // // check for direct quantity (no tokens used in the relationship)
-    // if (!std::regex_search(item._relationship, valid_relationship_tokens))
-    // {
-    //     // direct quantity calculation (left-to-right precedence)
-    //     std::regex direct_calculation_pattern("^\\s*([-+]?\\d*\\.?\\d+)\\s*((?:[\\+\\-\\*\\/]\\s*\\d*\\.?\\d+)*)\\s*$");
-    //     std::smatch full_match;
-        
-    //     if (std::regex_match(item._relationship, full_match, direct_calculation_pattern))
-    //     {
-    //         // ... (The rest of the Direct Quantity logic remains unchanged) ...
-    //         double result = std::stod(full_match[1].str());
-    //         std::string remaining_terms = full_match[2].str();
-
-    //         std::regex inner_term_pattern("([\\+\\-\\*\\/])\\s*(\\d*\\.?\\d+)");
-            
-    //         auto term_begin = std::sregex_iterator(remaining_terms.begin(), remaining_terms.end(), inner_term_pattern);
-    //         auto term_end = std::sregex_iterator();
-            
-    //         for (std::sregex_iterator j = term_begin; j != term_end; ++j)
-    //         {
-    //             std::smatch inner_match = *j;
-    //             char op = inner_match[1].str()[0];
-    //             std::string num_str = inner_match[2].str();
-    //             if (num_str.empty()) continue; 
-    //             double value = std::stod(num_str);
-                
-    //             switch (op) {
-    //                 case '+': result += value; break;
-    //                 case '-': result -= value; break;
-    //                 case '*': result *= value; break;
-    //                 case '/': 
-    //                     if (value == 0.0) {
-    //                         std::println("dev-output: Division by zero detected in Direct Quantity relationship for '{}'. Quantity set to 0.", item._itemName);
-    //                         return false;
-    //                     }
-    //                     result /= value; 
-    //                     break;
-    //                 default: 
-    //                     return false;
-    //             }
-    //         }
-            
-    //         item._relationQuantity = result;
-    //         item._itemQuantity = result;
-    //         shn_success = true;
-
-    //         item._spatialExponentValue = SpatialExponentValue::None;
-    //         item._outputSpatialExponentValue = SpatialExponentValue::None;
-    //         item._isCompoundRelationship = false; 
-    //     }
-    //     else
-    //     {
-    //         std::println("dev-output: GrunItem => {} has an UNRECOGNIZED Direct Quantity relationship structure: '{}'. Quantity set to 0.", 
-    //                      item._itemName, item._relationship);
-    //         return false;
-    //     }
-    // }
-    // else // relationship contains token
-    // {
-    //     // 3. Determine Dimensional Context (ISV and OSV)
-    //     //item._spatialExponentValue = calculateRelationshipSpatialExponent(item._relationship);
-    //     item._outputSpatialExponentValue = mapUnitToSpatialExponent(item._itemQuantityUnits);
-        
-    //     if (static_cast<int>(item._spatialExponentValue) < static_cast<int>(item._outputSpatialExponentValue))
-    //     {
-    //         item._isCompoundRelationship = true;
-    //     }
-    //     else
-    //     {
-    //         item._isCompoundRelationship = false;
-    //     }
-    //     // 4. Substitute SHN tokens (L, W, D, A, V) with actual GrunObject dimensions.
-    //     // This converts "2L1W@0.6" -> "2*30 + 1*3.1 @0.6" (or similar structure).
-	// 	std::println("Rel String before token sub: {}",item._relationship);
-    //     std::string substituted_expression = substituteRelationshipTokens(item._relationship);
-    //     std::println("Rel String after token sub: {}",substituted_expression);
-    //     // Find the boundary where the arithmetic stops (e.g., at the '@' in the Dowel example)
-    //     size_t arithmetic_end = substituted_expression.find_first_not_of("0123456789.+-*/ \t\n\r\f\v");
-    //     std::string expression_to_evaluate = substituted_expression.substr(0, arithmetic_end);
-
-    //     // 5. Evaluate the substituted expression using the Direct Quantity logic.
-    //     // We re-use the evaluation logic here, which fixes the multiple term bug (BUG 3).
-        
-    //     std::regex direct_calculation_pattern("^\\s*([-+]?\\d*\\.?\\d+)\\s*((?:[\\+\\-\\*\\/]\\s*\\d*\\.?\\d+)*)\\s*$");
-    //     std::smatch evaluation_match;
-    //     double relationQuantity = 0.0;
-        
-    //     if (std::regex_match(expression_to_evaluate, evaluation_match, direct_calculation_pattern))
-    //     {
-    //         relationQuantity = std::stod(evaluation_match[1].str());
-    //         std::string remaining_terms = evaluation_match[2].str();
-
-    //         std::regex inner_term_pattern("([\\+\\-\\*\\/])\\s*(\\d*\\.?\\d+)");
-            
-    //         auto term_begin = std::sregex_iterator(remaining_terms.begin(), remaining_terms.end(), inner_term_pattern);
-    //         auto term_end = std::sregex_iterator();
-            
-    //         for (std::sregex_iterator j = term_begin; j != term_end; ++j)
-    //         {
-    //             std::smatch inner_match = *j;
-    //             char op = inner_match[1].str()[0];
-    //             double value = std::stod(inner_match[2].str());
-                
-    //             switch (op) {
-    //                 case '+': relationQuantity += value; break;
-    //                 case '-': relationQuantity -= value; break;
-    //                 case '*': relationQuantity *= value; break;
-    //                 case '/': 
-    //                     if (value == 0.0) {
-    //                         std::println("dev-output: Division by zero detected in SHN relationship for '{}'. Using last valid quantity.", item._itemName);
-    //                         // Avoid division by zero, keep current relationQuantity.
-    //                         break;
-    //                     }
-    //                     relationQuantity /= value; 
-    //                     break;
-    //                 default: break;
-    //             }
-    //         }
-    //         shn_success = true;
-    //     }
-    //     else
-    //     {
-    //         std::println("dev-output: GrunItem => {} SHN failed arithmetic evaluation for '{}'. Quantity set to 0.", 
-    //                      item._itemName, expression_to_evaluate);
-    //         return false;
-    //     }
-        
-    //     // 6. Correct Compounding (BUG 1 FIX)
-    //     // If a compound relationship (Area -> Volume) exists AND the result is already in the OSV 
-    //     // dimension (i.e., the user provided a numeric factor like '0.05' in '0.05A'), we must NOT multiply by m_z.
-    //     // The only time we compound with m_z is if the relationship was a pure dimension like "A" (which results in numericMultiplier=1.0).
-    //     if (item._isCompoundRelationship)
-    //     {
-    //         int compoundingDifference = static_cast<int>(item._outputSpatialExponentValue) - static_cast<int>(item._spatialExponentValue);
-            
-    //         // Check if the user *did not* provide a numeric multiplier in the expression.
-    //         bool numeric_multiplier_provided = (item._relationship.find_first_of("0123456789.") != std::string::npos);
-
-    //         // We apply m_z compounding ONLY if ISV=Area, OSV=Volume, AND no numeric multiplier was given (e.g., relationship was "A" or "L*W").
-    //         if (compoundingDifference == 1 && item._spatialExponentValue == SpatialExponentValue::Area && !numeric_multiplier_provided)
-    //         {
-    //             relationQuantity *= m_z; 
-    //         }
-    //         // For cases like "0.05A", the math is already: 0.05 * Area. No further compounding by m_z is required.
-    //     }
-
-    //     // 7. Set the final calculated relation quantity after all steps.
-    //     item._relationQuantity = relationQuantity;
-    // }
-
-
-    // // --- STEP 2: APPLY itemQuantityFormula (CALCULATE _itemQuantity) (Existing Logic) ---
-    
-    // // ... (This section remains UNCHANGED from the previous response) ...
-    // std::regex invalid_formula_char_pattern("[^0-9.\\+\\-\\*\\/\\s]"); 
-    // std::regex formula_pattern("\\s*([\\+\\-\\*\\/])\\s*(\\d*\\.?\\d+)");
-    // std::smatch formula_match;
-
-    // if (shn_success)
-    // {
-    //     if (item._itemQuantityFormula.empty()) {
-    //         item._itemQuantity = item._relationQuantity;
-    //     }
-    //     else if (std::regex_search(item._itemQuantityFormula, invalid_formula_char_pattern))
-    //     {
-    //         item._itemQuantity = 0.0;
-    //         std::println("dev-output: GrunItem => {} has an INVALID _itemQuantityFormula: '{}'. Contains unsupported characters. Quantity set to 0.", 
-    //                      item._itemName, item._itemQuantityFormula);
-    //     }
-    //     else if (std::regex_match(item._itemQuantityFormula, formula_match, formula_pattern))
-    //     {
-    //         if (formula_match.size() == 3) {
-                
-    //             char op = formula_match[1].str()[0];
-    //             double value = std::stod(formula_match[2].str());
-    //             double finalQuantity = item._relationQuantity;
-
-    //             switch (op) {
-    //                 case '+': finalQuantity += value; break;
-    //                 case '-': finalQuantity -= value; break;
-    //                 case '*': finalQuantity *= value; break;
-    //                 case '/': 
-    //                     if (value == 0.0) {
-    //                         finalQuantity = item._relationQuantity;
-    //                         std::println("dev-output: Division by zero detected in _itemQuantityFormula for '{}'. Applying default formula (*1).", item._itemName);
-    //                         break;
-    //                     }
-    //                     finalQuantity /= value; 
-    //                     break;
-    //                 default: 
-    //                     finalQuantity = item._relationQuantity;
-    //                     break; 
-    //             }
-    //             item._itemQuantity = finalQuantity;
-    //         }
-    //     }
-    //     else
-    //     {
-    //         item._itemQuantity = item._relationQuantity;
-    //         std::println("dev-output: GrunItem => {} has an UNRECOGNIZED _itemQuantityFormula structure: '{}'. Applying default formula (*1, multiply by 1).", 
-    //                      item._itemName, item._itemQuantityFormula);
-    //     }
-    // }
-    
-    // // --- STEP 3: CALCULATE Primary Labour Value (_itemPrimaryLabour) ---
-    
-    // // 1. Check for EMPTY string (Default to 0.0)
-    // if (item._itemPrimaryLabourFormula.empty()) {
-    //     item._itemPrimaryLabour = 0.0; 
-    // }
-    // // 2. Check for INVALID CHARACTERS (Hard fail)
-    // else if (std::regex_search(item._itemPrimaryLabourFormula, invalid_formula_char_pattern))
-    // {
-    //     item._itemPrimaryLabour = 0.0;
-    //     std::println("dev-output: GrunItem => {} has an INVALID _itemPrimaryLabourFormula: '{}'. Contains unsupported characters. Labour set to 0.", 
-    //                  item._itemName, item._itemPrimaryLabourFormula);
-    // }
-    // // 3. Attempt to match SIMPLE FORMULA STRUCTURE
-    // else if (std::regex_match(item._itemPrimaryLabourFormula, formula_match, formula_pattern))
-    // {
-    //     if (formula_match.size() == 3) {
-            
-    //         char op = formula_match[1].str()[0];
-    //         double value = std::stod(formula_match[2].str());
-            
-    //         double finalLabour = item._itemQuantity; // LHS is item._itemQuantity
-
-    //         switch (op) {
-    //             case '+': finalLabour += value; break;
-    //             case '-': finalLabour -= value; break;
-    //             case '*': finalLabour *= value; break;
-    //             case '/': 
-    //                 if (value == 0.0) {
-    //                     finalLabour = item._itemQuantity;
-    //                     std::println("dev-output: Division by zero detected in _itemPrimaryLabourFormula for '{}'. Applying default formula (*1).", 
-    //                                  item._itemName);
-    //                     break;
-    //                 }
-    //                 finalLabour /= value; 
-    //                 break;
-    //             default: 
-    //                 finalLabour = item._itemQuantity;
-    //                 break; 
-    //         }
-            
-    //         item._itemPrimaryLabour = finalLabour;
-    //     }
-    // }
-    // // 4. FALLBACK: Valid characters, but invalid structure (Soft fail: default to *1.0)
-    // else
-    // {
-    //     // If the formula is present but cannot be parsed, assume the user intended *1.0 for the labour rate.
-    //     item._itemPrimaryLabour = item._itemQuantity; 
-    //     std::println("dev-output: GrunItem => {} has an UNRECOGNIZED _itemPrimaryLabourFormula structure: '{}'. Applying default formula (*1).", 
-    //                  item._itemName, item._itemPrimaryLabourFormula);
-    // }    
-
-    // std::regex invalid_labour_formula_char_pattern("[^0-9.\\+\\-\\*\\/\\s]"); 
-    // std::regex labour_formula_pattern("\\s*([\\+\\-\\*\\/])\\s*(\\d*\\.?\\d+)");
-    // std::smatch labour_formula_match;
-
-    // if (item._itemPrimaryLabourFormula.empty()) {
-    //     item._itemPrimaryLabour = 0.0; 
-    // }
-    // else if (std::regex_search(item._itemPrimaryLabourFormula, invalid_labour_formula_char_pattern))
-    // {
-    //     item._itemPrimaryLabour = 0.0;
-    //     std::println("dev-output: GrunItem => {} has an INVALID _itemPrimaryLabourFormula: '{}'. Contains unsupported characters. Labour set to 0.", 
-    //                  item._itemName, item._itemPrimaryLabourFormula);
-    // }
-    // else if (std::regex_match(item._itemPrimaryLabourFormula, labour_formula_match, labour_formula_pattern))
-    // {
-    //     if (labour_formula_match.size() == 3) {
-            
-    //         char op = labour_formula_match[1].str()[0];
-    //         double value = std::stod(labour_formula_match[2].str());
-            
-    //         double finalLabour = item._itemQuantity;
-
-    //         switch (op) {
-    //             case '+': finalLabour += value; break;
-    //             case '-': finalLabour -= value; break;
-    //             case '*': finalLabour *= value; break;
-    //             case '/': 
-    //                 if (value == 0.0) {
-    //                     finalLabour = item._itemQuantity;
-    //                     std::println("dev-output: Division by zero detected in _itemPrimaryLabourFormula for '{}'. Applying default formula (*1).", 
-    //                                  item._itemName);
-    //                     break;
-    //                 }
-    //                 finalLabour /= value; 
-    //                 break;
-    //             default: 
-    //                 finalLabour = item._itemQuantity;
-    //                 break; 
-    //         }
-            
-    //         item._itemPrimaryLabour = finalLabour;
-    //     }
-    // }
-    // else
-    // {
-    //     item._itemPrimaryLabour = item._itemQuantity; 
-    //     std::println("dev-output: GrunItem => {} has an UNRECOGNIZED _itemPrimaryLabourFormula structure: '{}'. Applying default formula (*1).", 
-    //                  item._itemName, item._itemPrimaryLabourFormula);
-    // }
-    
-	// item._itemLKGWCalculated = std::chrono::system_clock::now();
-    // return shn_success; 
+	// calculate primary labour and update LKGW calculated value
+	item._itemPrimaryLabour		= applyFormula(item._itemQuantity, item._itemPrimaryLabourFormula, item._itemName, "Primary Labour");
+	item._itemLKGWCalculated	= std::chrono::system_clock::now();
+	return true;
 }
-
-// bool GrunObject::calculateGrunItemData(GrunItem &item)
-// {
-//     // Define Width and Depth based on AreaType
-//     double width_val = (m_areaType == AreaType::Vertical) ? m_z : m_y;
-//     double depth_val = (m_areaType == AreaType::Vertical) ? m_y : m_z;
-
-//     // 1. Map SHN placeholders to GrunObject attributes
-//     std::map<char, double> attributes = {
-//         {'L', m_x},				    // Length (always m_x)
-//         {'W', width_val},		    // Width (m_y or m_z, depending on AreaType)
-//         {'D', depth_val},		    // Depth (m_z or m_y, depending on AreaType)
-//         {'A', m_area},			    // Area
-//         {'V', m_volume},		    // Volume
-//         {'C', m_circumference}	    // Circumference
-//     };
-
-//     // Initialize state
-//     item._relationQuantity = 0.0;
-//     item._itemQuantity = 0.0;
-//     item._itemPrimaryLabour = 0.0;
-//     bool shn_success = false;
-// 	// calculate the relationship's spatial exponent and assign it to the GrunItem's _spatialExponentValue
-// 	item._spatialExponentValue = calculateRelationshipSpatialExponent(item._relationship);
-
-//     // --- STEP 1: SHN CONVERSION (CALCULATE _relationQuantity) ---
-    
-//     // 2. Add STRICT NEGATIVE VALIDATION
-//     std::regex invalid_relationship_char_pattern("[^0-9.LWDAVC\\+\\-\\@\\*\\/\\s]"); 
-
-//     if (std::regex_search(item._relationship, invalid_relationship_char_pattern))
-//     {
-//         std::println("dev-output: GrunItem => {} has an INVALID SHN relationship: '{}'. Contains unsupported characters. Quantity set to 0.", 
-//                      item._itemName, item._relationship);
-//         return false; // SHN failed entirely, and we skip steps 2/3 logic later.
-//     }
-
-//     // 2b. Check for DIRECT QUANTITY (No SHN placeholders LWDAVC)
-//     std::regex valid_relationship_tokens("[LWDAVC]");
-
-//     if (!std::regex_search(item._relationship, valid_relationship_tokens))
-//     {
-//         // Direct Quantity calculation (Left-to-Right precedence)
-//         std::regex direct_calculation_pattern("^\\s*(\\d*\\.?\\d+)\\s*((?:[\\+\\-\\*\\/]\\s*\\d*\\.?\\d+)*)\\s*$");
-//         std::smatch full_match;
-        
-//         if (std::regex_match(item._relationship, full_match, direct_calculation_pattern))
-//         {
-//             double result = std::stod(full_match[1].str());
-//             std::string remaining_terms = full_match[2].str();
-
-//             std::regex inner_term_pattern("([\\+\\-\\*\\/])\\s*(\\d*\\.?\\d+)");
-            
-//             auto term_begin = std::sregex_iterator(remaining_terms.begin(), remaining_terms.end(), inner_term_pattern);
-//             auto term_end = std::sregex_iterator();
-            
-//             for (std::sregex_iterator j = term_begin; j != term_end; ++j)
-//             {
-//                 std::smatch inner_match = *j;
-//                 char op = inner_match[1].str()[0];
-//                 std::string num_str = inner_match[2].str();
-//                 if (num_str.empty()) continue; 
-//                 double value = std::stod(num_str);
-                
-//                 switch (op) {
-//                     case '+': result += value; break;
-//                     case '-': result -= value; break;
-//                     case '*': result *= value; break;
-//                     case '/': 
-//                         if (value == 0.0) {
-//                             std::println("dev-output: Division by zero detected in Direct Quantity relationship for '{}'. Quantity set to 0.", item._itemName);
-//                             return false;
-//                         }
-//                         result /= value; 
-//                         break;
-//                     default: 
-//                         return false;
-//                 }
-//             }
-            
-//             // Direct Quantity success: set both relation and item quantity
-//             item._relationQuantity = result;
-//             item._itemQuantity = result;
-//             shn_success = true; // Mark as successful for direct quantity path
-//         }
-//         else
-//         {
-//             // Unrecognized Direct Quantity structure
-//             std::println("dev-output: GrunItem => {} has an UNRECOGNIZED Direct Quantity relationship structure: '{}'. Quantity set to 0.", 
-//                          item._itemName, item._relationship);
-//             return false;
-//         }
-//     }
-//     else // --- SHN Parsing Logic (Runs if placeholders LWDAVC are found) ---
-//     {
-//         std::regex outer_shn_pattern("\\s*([\\+\\-]\\s*)?([^@\\s\\+\\-]+)(?:@(\\d*\\.?\\d+))?");
-//         std::regex inner_term_pattern("(\\d*\\.?\\d*)\\s*([LWDAVC])");
-        
-//         std::string relationship = item._relationship;
-//         double relationResult = 0.0;
-
-//         auto words_begin = std::sregex_iterator(relationship.begin(), relationship.end(), outer_shn_pattern);
-//         auto words_end = std::sregex_iterator();
-
-//         for (std::sregex_iterator i = words_begin; i != words_end; ++i)
-//         {
-//             // ... (rest of SHN parsing logic) ...
-//             std::smatch outer_match = *i;
-//             char op = outer_match[1].matched ? outer_match[1].str().find('-') != std::string::npos ? '-' : '+' : '+';
-
-//             std::string shn_block = outer_match[2].str();
-//             bool is_lci = outer_match.size() == 4 && outer_match[3].matched;
-
-//             // Inner Parsing: Calculate the total span for this block
-//             double block_span_sum = 0.0;
-//             auto inner_begin = std::sregex_iterator(shn_block.begin(), shn_block.end(), inner_term_pattern);
-//             auto inner_end = std::sregex_iterator();
-
-//             for (std::sregex_iterator j = inner_begin; j != inner_end; ++j)
-//             {
-//                 std::smatch inner_match = *j;
-//                 std::string coeff_str = inner_match[1].str();
-//                 double coefficient = coeff_str.empty() ? 1.0 : std::stod(coeff_str);
-//                 char placeholder = inner_match[2].str()[0];
-
-//                 if (attributes.count(placeholder))
-//                 {
-//                     block_span_sum += (coefficient * attributes.at(placeholder));
-//                     shn_success = true; 
-//                 }
-//             }
-
-//             // LCI Calculation
-//             double term_final_value = block_span_sum;
-//             if (is_lci && block_span_sum > 0.0)
-//             {
-//                 double interval = std::stod(outer_match[3].str());
-//                 if (interval > 0.0) {
-//                     term_final_value = (block_span_sum / interval) + 1.0;
-//                 }
-//             }
-            
-//             // Apply the operator to the running total
-//             if (op == '+') {
-//                 relationResult += term_final_value;
-//             } else if (op == '-') {
-//                 relationResult -= term_final_value;
-//             }
-//         }
-//         item._relationQuantity = relationResult;
-//     }
-
-
-//     // The rest of the function (STEP 2 and STEP 3) executes regardless of the SHN path chosen, 
-//     // but operates on the results of STEP 1.
-
-    
-//     // --- STEP 2: APPLY itemQuantityFormula (CALCULATE _itemQuantity) ---
-    
-// 	// dev-note: the regexes beginning with ^ are negating which means "not the following"
-//     std::regex invalid_formula_char_pattern("[^0-9.\\+\\-\\*\\/\\s]"); 
-//     std::regex formula_pattern("\\s*([\\+\\-\\*/])\\s*(\\d*\\.?\\d+)");
-//     std::smatch formula_match;
-
-//     // If SHN succeeded OR Direct Quantity was used, apply formula.
-//     if (shn_success)
-//     {
-//         // 1. Check for EMPTY string (Default to *1)
-//         if (item._itemQuantityFormula.empty()) {
-//             item._itemQuantity = item._relationQuantity;
-//         }
-//         // 2. Check for INVALID CHARACTERS (Hard fail)
-//         else if (std::regex_search(item._itemQuantityFormula, invalid_formula_char_pattern))
-//         {
-//             item._itemQuantity = 0.0;
-//             std::println("dev-output: GrunItem => {} has an INVALID _itemQuantityFormula: '{}'. Contains unsupported characters. Quantity set to 0.", 
-//                          item._itemName, item._itemQuantityFormula);
-//         }
-//         // 3. Attempt to match SIMPLE FORMULA STRUCTURE
-//         else if (std::regex_match(item._itemQuantityFormula, formula_match, formula_pattern))
-//         {
-//             if (formula_match.size() == 3) {
-                
-//                 char op = formula_match[1].str()[0];
-//                 double value = std::stod(formula_match[2].str());
-//                 double finalQuantity = item._relationQuantity; // LHS is _relationQuantity
-
-//                 switch (op) {
-//                     case '+': finalQuantity += value; break;
-//                     case '-': finalQuantity -= value; break;
-//                     case '*': finalQuantity *= value; break;
-//                     case '/': 
-//                         if (value == 0.0) {
-//                             finalQuantity = item._relationQuantity;
-//                             std::println("dev-output: Division by zero detected in _itemQuantityFormula for '{}'. Applying default formula (*1).", item._itemName);
-//                             break;
-//                         }
-//                         finalQuantity /= value; 
-//                         break;
-//                     default: 
-//                         finalQuantity = item._relationQuantity;
-//                         break; 
-//                 }
-//                 item._itemQuantity = finalQuantity;
-//             }
-//         }
-//         // 4. FALLBACK: Valid characters, but invalid structure (Soft fail: default to *1.0)
-//         else
-//         {
-//             item._itemQuantity = item._relationQuantity;
-//             std::println("dev-output: GrunItem => {} has an UNRECOGNIZED _itemQuantityFormula structure: '{}'. Applying default formula (*1, multiply by 1).", 
-//                          item._itemName, item._itemQuantityFormula);
-//         }
-//     }
-
-
-//     // --- STEP 3: CALCULATE Primary Labour Value (_itemPrimaryLabour) ---
-    
-//     // 1. Check for EMPTY string (Default to 0.0)
-//     if (item._itemPrimaryLabourFormula.empty()) {
-//         item._itemPrimaryLabour = 0.0; 
-//     }
-//     // 2. Check for INVALID CHARACTERS (Hard fail)
-//     else if (std::regex_search(item._itemPrimaryLabourFormula, invalid_formula_char_pattern))
-//     {
-//         item._itemPrimaryLabour = 0.0;
-//         std::println("dev-output: GrunItem => {} has an INVALID _itemPrimaryLabourFormula: '{}'. Contains unsupported characters. Labour set to 0.", 
-//                      item._itemName, item._itemPrimaryLabourFormula);
-//     }
-//     // 3. Attempt to match SIMPLE FORMULA STRUCTURE
-//     else if (std::regex_match(item._itemPrimaryLabourFormula, formula_match, formula_pattern))
-//     {
-//         if (formula_match.size() == 3) {
-            
-//             char op = formula_match[1].str()[0];
-//             double value = std::stod(formula_match[2].str());
-            
-//             double finalLabour = item._itemQuantity; // LHS is item._itemQuantity
-
-//             switch (op) {
-//                 case '+': finalLabour += value; break;
-//                 case '-': finalLabour -= value; break;
-//                 case '*': finalLabour *= value; break;
-//                 case '/': 
-//                     if (value == 0.0) {
-//                         finalLabour = item._itemQuantity;
-//                         std::println("dev-output: Division by zero detected in _itemPrimaryLabourFormula for '{}'. Applying default formula (*1).", 
-//                                      item._itemName);
-//                         break;
-//                     }
-//                     finalLabour /= value; 
-//                     break;
-//                 default: 
-//                     finalLabour = item._itemQuantity;
-//                     break; 
-//             }
-            
-//             item._itemPrimaryLabour = finalLabour;
-//         }
-//     }
-//     // 4. FALLBACK: Valid characters, but invalid structure (Soft fail: default to *1.0)
-//     else
-//     {
-//         // If the formula is present but cannot be parsed, assume the user intended *1.0 for the labour rate.
-//         item._itemPrimaryLabour = item._itemQuantity; 
-//         std::println("dev-output: GrunItem => {} has an UNRECOGNIZED _itemPrimaryLabourFormula structure: '{}'. Applying default formula (*1).", 
-//                      item._itemName, item._itemPrimaryLabourFormula);
-//     }
-    
-// 	// the GrunItem's data has successfully calculated, so update its LKGWCalculated value to now().
-// 	item._itemLKGWCalculated = std::chrono::system_clock::now();
-//     return shn_success; 
-// }
-
-// SpatialExponentValue GrunObject::calculateRelationshipSpatialExponent(const std::string &relationship) const
-// {
-// 	// Regex for finding additive terms separated by '+' or '-'
-//     // Note: This finds continuous sequences that are NOT '+' or '-'
-//     std::regex termSeparatorRegex("([^\\+\\-]+)");
-    
-//     // Regex for finding individual dimension tokens (L, W, A, V, etc.)
-//     std::regex dimensionTokenRegex("([A-Z])");
-
-//     int maxExponent = 0; // Tracks the highest exponent found across all additive terms
-
-//     // --- PHASE 1: Iterate over the TOP-LEVEL ADDITIVE TERMS ---
-//     std::sregex_iterator termIterator(relationship.begin(), relationship.end(), termSeparatorRegex);
-//     std::sregex_iterator termEnd;
-
-//     while (termIterator != termEnd) 
-//     {
-//         std::smatch currentTermMatch = *termIterator;
-//         std::string currentTerm = currentTermMatch.str();
-        
-//         // Clean whitespace from the current term
-//         currentTerm.erase(0, currentTerm.find_first_not_of(" \t\n\r\f\v"));
-//         currentTerm.erase(currentTerm.find_last_not_of(" \t\n\r\f\v") + 1);
-
-//         int currentTermExponent = 0;
-
-//         // --- PHASE 2: Check for Multiplication in the current term ---
-//         if (currentTerm.find('*') != std::string::npos) 
-//         {
-//             // --- Case A: Multiplication (e.g., "1L * 1W" or "2A*L") ---
-            
-//             // Re-use dimensionTokenRegex to find all tokens within the multiplicative term.
-//             // We SUM the exponents of all tokens found in this single multiplicative term.
-//             std::sregex_iterator tokenIterator(currentTerm.begin(), currentTerm.end(), dimensionTokenRegex);
-//             std::sregex_iterator tokenEnd;
-
-//             while (tokenIterator != tokenEnd)
-//             {
-//                 std::smatch tokenMatch = *tokenIterator;
-//                 std::string token = tokenMatch[1].str(); 
-
-//                 auto it = propertyDimensions.find(token);
-
-//                 if (it != propertyDimensions.end()) 
-//                 {
-//                     // Multiplication Rule: SUM the exponents
-//                     currentTermExponent += static_cast<int>(it->second);
-//                 }
-
-//                 tokenIterator++;
-//             }
-            
-//             // Apply the maximum cap check for multiplicative results (A*V = 5 is capped at 3)
-//             if (currentTermExponent > static_cast<int>(SpatialExponentValue::Volume)) 
-//             {
-//                 currentTermExponent = static_cast<int>(SpatialExponentValue::Volume);
-//             }
-//         }
-//         else 
-//         {
-//             // --- Case B: Implicit Addition / Single Dimension (e.g., "1L1W" or "2A") ---
-            
-//             // If no '*' is present, treat the term as additive parts where the exponent 
-//             // is the MAX exponent of all tokens found in the term (Dimensional Homogeneity).
-            
-//             std::sregex_iterator tokenIterator(currentTerm.begin(), currentTerm.end(), dimensionTokenRegex);
-//             std::sregex_iterator tokenEnd;
-//             int maxTokenExponent = 0;
-
-//             while (tokenIterator != tokenEnd)
-//             {
-//                 std::smatch tokenMatch = *tokenIterator;
-//                 std::string token = tokenMatch[1].str(); 
-
-//                 auto it = propertyDimensions.find(token);
-
-//                 if (it != propertyDimensions.end()) 
-//                 {
-//                     // Implicit Addition Rule: Find the MAX exponent
-//                     int tokenExponent = static_cast<int>(it->second);
-//                     if (tokenExponent > maxTokenExponent)
-//                     {
-//                         maxTokenExponent = tokenExponent;
-//                     }
-//                 }
-//                 tokenIterator++;
-//             }
-//             // The exponent for this entire term is the max exponent found
-//             currentTermExponent = maxTokenExponent;
-//             // No need to cap here, as maxExponent is already capped by the enum definitions (max 3)
-//         }
-        
-//         // --- PHASE 3: Determine Max Exponent (Overall Addition/Homogeneity) ---
-//         // The overall spatial exponent of the relationship is the maximum exponent of any term
-//         if (currentTermExponent > maxExponent)
-//         {
-//             maxExponent = currentTermExponent;
-//         }
-
-//         termIterator++; // Move to the next term
-//     }
-    
-//     // Convert the final max exponent to the enum type
-//     return static_cast<SpatialExponentValue>(maxExponent);
-// }
 
 int GrunObject::calculateGrunObjectTotals()
 {
@@ -1285,41 +601,49 @@ std::string GrunObject::injectImplicitOperators(std::string &segment) {
     return prefix + token;
 }
 
-bool GrunObject::interpretRelationship(GrunItem &item)
+SpatialExponentValue GrunObject::interpretRelationship(GrunItem &item)
 {
-	// make temp copy of relatioship string from the item & rm whitespace from temp relationship string
+	// make temp copy of relationship string from the item & rm whitespace from temp relationship string
 	std::string relationship = item._relationship;
 	relationship.erase(std::remove_if(relationship.begin(), relationship.end(), ::isspace), relationship.end());
 	
 	// split relationship into implied terms - matches one or more capital letter(s) optionally preceded by numbers/explicit operators, or the @ operator followed by numbers
-	std::regex splitOnObjectTokens(R"(([0-9.\/*+\-]*[A-Z]+)|(@[0-9.]+))");
+	std::regex splitOnObjectTokens(R"(([0-9.\/*+\-]*[A-Z]*)|(@[0-9.]+))");
 
 	// split up relationship string using the regex
-	auto segments_begin	= std::sregex_iterator(relationship.begin(), relationship.end(), splitOnObjectTokens);
+	auto segments_begin		= std::sregex_iterator(relationship.begin(), relationship.end(), splitOnObjectTokens);
 	auto segments_end		= std::sregex_iterator();
 
-	std::vector<std::string>	segments;											// to hold all the segments
 	SpatialExponentValue		totalRelationshipSV	= SpatialExponentValue::None;	// to hold the return value
-	std::string 				interprettedExpr	= "";
+	std::string 				baseExpr			= "";
+	std::string					modifierExpr		= "";
+	bool						isFirstSegment		= true;
+	std::string					interprettedExpr	= "";
 
-	// loop through resulting segments of regex analysis
+	// loop through segments of regex analysis
 	for (std::sregex_iterator i = segments_begin; i != segments_end; ++i)
 	{
-		// push current segment into vector of strings
-		std::string rawSegment = i->str();
-		std::string processedSegment = injectImplicitOperators(rawSegment);
-		segments.push_back(processedSegment);
-
-		// check segment for explicit compound operators
-		if (processedSegment.starts_with('@'))
+		std::string	rawSegment			= i->str();
+		std::string	processedSegment	= injectImplicitOperators(rawSegment);
+		std::string	connection			= "";
+		if (!isFirstSegment && !rawSegment.empty())
 		{
-			std::string	value	= processedSegment.substr(1);
-			interprettedExpr += "/" + value + "+1";
+			char firstChar = rawSegment[0];
+			if (std::isdigit(firstChar) || std::isupper(firstChar))
+			{
+				connection = "+";
+			}
+		}
+
+		if (rawSegment.starts_with('@'))
+		{
+			std::string val	= rawSegment.substr(1);
+			modifierExpr = "/" + val + "+1";
 		}
 		else
 		{
-			// append interpretted expression with current processed segment
-			interprettedExpr += processedSegment;
+			baseExpr += connection + "(" + processedSegment + ")";
+			isFirstSegment = false;
 		}
 
 		// calculate spatial value for this segment
@@ -1338,26 +662,26 @@ bool GrunObject::interpretRelationship(GrunItem &item)
 		size_t opPos = rawSegment.find_first_of("*/+-@");
 		bool hasExplicitOperator = (opPos != std::string::npos);
 		if (hasExplicitOperator)
-{
-    char foundOp = rawSegment[opPos];
-    if (foundOp == '/' || foundOp == '@')
-    {
-		// dividing reduces the segmentExponentTotal
-        segmentExponentTotal -= 1;
-        std::println("  {:<15} > Reductive operator '{}' detected. Decreasing Spatial Value.", relationship,foundOp);
-    }
-    else if (foundOp == '*') 
-    {
-        // multiplying increases the segmentExponentTotal
-        segmentExponentTotal += 1;
-        std::println("  {:<15} > Multiplicative operator '*' detected. Increasing Spatial Value.",relationship);
-    }
-    else 
-    {
-        // adding/subtracting do nothing
-        std::println("  {:<15} > Additive operator '{}' detected. Spatial Value remains unchanged.", relationship, foundOp);
-    }
-}
+		{
+			char foundOp = rawSegment[opPos];
+			if (foundOp == '/' || foundOp == '@')
+			{
+				// dividing reduces the segmentExponentTotal
+				segmentExponentTotal -= 1;
+				// std::println("  {:<15} > Reductive operator '{}' detected. Decreasing Spatial Value.", relationship,foundOp);
+			}	
+			else if (foundOp == '*') 
+			{
+				// multiplying increases the segmentExponentTotal
+				segmentExponentTotal += 1;
+				// std::println("  {:<15} > Multiplicative operator '*' detected. Increasing Spatial Value.",relationship);
+			}
+			else 
+			{
+				// adding/subtracting do nothing
+				// std::println("  {:<15} > Additive operator '{}' detected. Spatial Value remains unchanged.", relationship, foundOp);
+			}
+		}
 
 		// the return value takes the highest segmentExponentTotal found from all the segments, ensuring the result is within 0-3
 		int safeSegmentExponentTotal = std::clamp(segmentExponentTotal, 0, 3);
@@ -1367,9 +691,18 @@ bool GrunObject::interpretRelationship(GrunItem &item)
 		}
 	}
 
-	item._spatialExponentValue		= totalRelationshipSV;
-	item._interprettedRelationship	= interprettedExpr;
-	return true;
+	// assign the GrunItem's member values and then return
+	item._baseExpression = baseExpr;
+	if (!modifierExpr.empty())
+	{
+		item._interprettedRelationship = "(" + baseExpr + ")" + modifierExpr;
+	}
+	else
+	{
+		item._interprettedRelationship = baseExpr;
+	}
+	item._spatialExponentValue = totalRelationshipSV;
+	return totalRelationshipSV;
 }
 
 std::string GrunObject::substituteRelationshipTokens(const std::string& relationship) const
@@ -1419,22 +752,9 @@ std::string GrunObject::substituteRelationshipTokens(const std::string& relation
         }
     }
 
-    // After substitution, the string is now just numbers and operators (e.g., "2*30 + 1*3.1 @0.6")
-    // Note: The "Direct Quantity" evaluator only handles +,-,*,/ and numbers.
-    
-    // We MUST replace the implicit multiplication/addition from the user's SHN style:
-    // This step is crucial: replace '2.5L' with '2.5 * L_val', '1L1W' with '1*L_val + 1*W_val'
-    // Since we already did the substitution, we are left with: "2(30) + 1(3.1) @0.6"
-    
-    // We will assume the user has correctly used '*' for multiplication and the original
-    // relationship string for additive terms (2L1W -> 2L + 1W). The evaluation must 
-    // stop at the first non-arithmetic character.
-
-    // For now, we return the substituted string, which is the best we can do without a full parser.
     return substituted_relationship;
 }
 
-// [4] Implementation of calculateRelationshipSpatialExponent (The Complex Parser - based on previous discussion)
 SpatialExponentValue GrunObject::calculateRelationshipSpatialExponent(const std::string& relationship) const
 {
     // ... (This function remains as implemented in the last successful response, handling '*' and '+/-' rules)
@@ -1509,6 +829,60 @@ SpatialExponentValue GrunObject::calculateRelationshipSpatialExponent(const std:
     }
     
     return static_cast<SpatialExponentValue>(maxExponent);
+}
+
+double GrunObject::evaluateArithmetic(std::string expression)
+{
+	if (expression.empty()) return 0.0;
+
+	// handle parentheses recursively
+	size_t openBracket = expression.find_last_of('(');
+	while (openBracket != std::string::npos)
+	{
+		size_t closeBracket = expression.find(')', openBracket);
+		
+		// safety break
+		if (closeBracket = std::string::npos) 
+			break;
+		
+		// extract the inside expression, evaluate it, and swap it back int othe string
+		std::string inside = expression.substr(openBracket + 1, closeBracket - openBracket - 1);
+		expression.replace(openBracket, closeBracket - openBracket + 1, std::to_string(evaluateArithmetic(inside)));
+	}
+
+	// 2. Multi-Pass Standard Precedence (MD then AS)
+    auto performPass = [&](const std::string& opPattern) {
+        std::regex pattern(R"(([-+]?\d*\.?\d+)\s*()" + opPattern + R"()\s*([-+]?\d*\.?\d+))");
+        std::smatch match;
+        while (std::regex_search(expression, match, pattern)) {
+            double left = std::stod(match[1].str());
+            char op = match[2].str()[0];
+            double right = std::stod(match[3].str());
+            double res = 0.0;
+
+            if (op == '*') res = left * right;
+            else if (op == '/') res = (right != 0) ? left / right : 0.0;
+            else if (op == '+') res = left + right;
+            else if (op == '-') res = left - right;
+
+            expression.replace(match.position(), match.length(), std::to_string(res));
+        }
+    };
+
+    performPass(R"([\*/])"); // Pass 1: Multiplication and Division
+    performPass(R"([\+\-])"); // Pass 2: Addition and Subtraction
+
+	// final cleanup - remove any stray whitespace or parentheses before stod() is called
+	expression.erase(std::remove(expression.begin(), expression.end(), '('), expression.end());
+	expression.erase(std::remove(expression.begin(), expression.end(), ')'), expression.end());
+    try 
+	{ 
+		return std::stod(expression);
+	}
+    catch (...)	
+	{ 
+		return 0.0;
+	}
 }
 
 // returns a SpatialExponentValue (None,Linear,Area,Volume) that corressponds to the token given to the function
