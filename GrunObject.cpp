@@ -447,12 +447,18 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
         return false;
     }
 
-	// interpret the item's relationship string & calculate its Spatial Value based on its relationship to the GrunObject (0 None, 1 Linear, 2 Area, 3 Volume)
-	// dev-note: interpretRelationship() updates a few values that are used below in this method
+	// map the GrunItem's QuantitySpatialUnit
 	item._itemQuantitySpatialUnit	= mapUnitToSpatialExponent(item._itemQuantityUnits);
+	// interpret the GrunItem's relationship string
 	item._calculatedSpatialUnit		= interpretRelationship(item);
-	item._isCompoundRelationship	= (static_cast<int>(item._calculatedSpatialUnit) < static_cast<int>(item._itemQuantitySpatialUnit));
-
+	// Decide the GrunItem's Compound Relationship status (based on if it has a Quantity Formula or not)
+	// dev-note: _isCompoundRelationship will be false if the GrunItem has an _itemQuantityFormula set.
+	// 			 if _itemQuantityFormula is empty, _isCompoundRelationship will be decided based on comparing _calculatedSpatialUnit and _itemQuantitySpatialUnit
+	if (item._itemQuantityFormula.empty())
+		item._isCompoundRelationship = (static_cast<int>(item._calculatedSpatialUnit) > static_cast<int>(item._itemQuantitySpatialUnit));
+	else
+		item._isCompoundRelationship = false;
+	
 	std::string mathBaseExpr		= substituteRelationshipTokens(item._baseExpression);			// mathBaseExpr is the GrunItem's _baseExpression with the GrunObject Tokens converted to their numeric values
 	item._relationQuantity			= evaluateArithmetic(mathBaseExpr);								// _relationQuantity is calculated from the base expression (no explicit, compounding, terms are used for this)
 
@@ -647,14 +653,11 @@ SpatialExponentValue GrunObject::interpretRelationship(GrunItem &item)
 
 		if (!rawSegment.empty())
 		{
-			// if this is a basic term and it's not the first segment, set the connection operator to +
+			// if this is not the first segment and is a basic term (it starts with a number or uppercase letter), set the connection operator to +
 			if (!isFirstSegment)
 			{
-				char firstChar = rawSegment[0];
-				if (std::isdigit(firstChar) || std::isupper(firstChar))
-				{
+				if (std::isdigit(rawSegment[0]) || std::isupper(rawSegment[0]))
 					connection = "+";
-				}
 			}
 
 			// check for explicit operators and override the simple + connection operator if needed
@@ -671,10 +674,13 @@ SpatialExponentValue GrunObject::interpretRelationship(GrunItem &item)
 				processedSegment.erase(0,1);					// pop the leading, explicit operator off the term
 			}
 
-			// join the current segment to the existing baseExpr with the connection operator
-			if (!processedSegment.empty())
-				baseExpr += connection + "(" + processedSegment + ")";
-			isFirstSegment = false;
+			if (!rawSegment.starts_with('@'))
+			{
+				// join the current segment to the existing baseExpr with the connection operator
+				if (!processedSegment.empty())
+					baseExpr += connection + "(" + processedSegment + ")";
+				isFirstSegment = false;
+			}
 
 			// calculate spatial value for this segment
 			int segmentExponentTotal = 0;

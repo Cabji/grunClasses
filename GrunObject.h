@@ -27,8 +27,6 @@ enum class AreaType
 	Vertical
 };
 
-
-
 struct TotalAndUnit
 {
 	double		_total 	= 0.0;
