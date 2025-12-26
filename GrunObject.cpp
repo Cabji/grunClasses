@@ -449,32 +449,42 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
 
 	// interpret the item's relationship string & calculate its Spatial Value based on its relationship to the GrunObject (0 None, 1 Linear, 2 Area, 3 Volume)
 	// dev-note: interpretRelationship() updates a few values that are used below in this method
-	item._calculatedSpatialUnit	= interpretRelationship(item);
 	item._itemQuantitySpatialUnit	= mapUnitToSpatialExponent(item._itemQuantityUnits);
+	item._calculatedSpatialUnit		= interpretRelationship(item);
 	item._isCompoundRelationship	= (static_cast<int>(item._calculatedSpatialUnit) < static_cast<int>(item._itemQuantitySpatialUnit));
 
 	std::string mathBaseExpr		= substituteRelationshipTokens(item._baseExpression);			// mathBaseExpr is the GrunItem's _baseExpression with the GrunObject Tokens converted to their numeric values
 	item._relationQuantity			= evaluateArithmetic(mathBaseExpr);								// _relationQuantity is calculated from the base expression (no explicit, compounding, terms are used for this)
 
-	std::string mathFullExpr		= substituteRelationshipTokens(item._interprettedRelationship);	// mathFullExpr is the GrunItem's _interprettedRelationship with the GrunObject Tokens converted to their numeric values
-	item._itemQuantity 				= evaluateArithmetic(mathFullExpr);									// _itemQuantity is calculated from the full interpretted relationship
-
-	// handle compound relationships (eg: A -> V)
-	if (item._isCompoundRelationship)
+	// check if the GrunItem's baseExpression and interprettedRelationship are the same. if they are just give +_itemQuantity the same value as relationQuantity as there's no more math in the relationship to evaluate
+	if (item._baseExpression == item._interprettedRelationship)
 	{
-		std::println("Item '{}' has a compound relationship.",item._itemName);
-		int diff = static_cast<int>(item._itemQuantitySpatialUnit) - static_cast<int>(item._calculatedSpatialUnit);
-		// check for explicit number/factor in the string
-		bool explicitFactor	= (item._relationship.find_first_of("0123456789.") != std::string::npos);
-
-		if (diff == 1 && item._calculatedSpatialUnit == SpatialExponentValue::Area && !explicitFactor)
-		{
-			item._relationQuantity *= m_z;
-			item._itemQuantity *= m_z;
-		}
+		item._itemQuantity = item._relationQuantity;
 	}
 	else
 	{
+		// otheriwse, evaluate the full interprettedRelationship (which includes the 'modifier' expression on the RHS)
+		std::string mathFullExpr		= substituteRelationshipTokens(item._interprettedRelationship);
+		item._itemQuantity 				= evaluateArithmetic(mathFullExpr);
+	}
+	
+	// if the GrunItem has a compound relationship, the _itemQuantity will already be a value in the GrunItem's _itemQuantityUnits
+	if (item._isCompoundRelationship)
+	{
+		std::println("Item '{}' has a compound relationship, so we'll do nothing.",item._itemName);
+		// int diff = static_cast<int>(item._itemQuantitySpatialUnit) - static_cast<int>(item._calculatedSpatialUnit);
+		// // check for explicit number/factor in the string
+		// bool explicitFactor	= (item._relationship.find_first_of("0123456789.") != std::string::npos);
+
+		// if (diff == 1 && item._calculatedSpatialUnit == SpatialExponentValue::Area && !explicitFactor)
+		// {
+		// 	item._relationQuantity *= m_z;
+		// 	item._itemQuantity *= m_z;
+		// }
+	}
+	else
+	{
+		// non-compounded relationships need the GrunItem's _itemQuantityFormula applied to the _relationQuantity
 		item._itemQuantity			= applyFormula(item._relationQuantity, item._itemQuantityFormula, item._itemName, "Item Qty");
 	}
 
@@ -635,77 +645,80 @@ SpatialExponentValue GrunObject::interpretRelationship(GrunItem &item)
 		std::string	processedSegment	= injectImplicitOperators(rawSegment);	// processedSegment is the rawSegment (current term being processed) with implicit operators injected into it
 		std::string	connection			= "";									// connection is used to insert implicit addition operators between terms in the relationship string
 
-		if (!isFirstSegment && !rawSegment.empty())
+		if (!rawSegment.empty())
 		{
-			char firstChar = rawSegment[0];
-			if (std::isdigit(firstChar) || std::isupper(firstChar))
+			// if this is a basic term and it's not the first segment, set the connection operator to +
+			if (!isFirstSegment)
 			{
-				connection = "+";
+				char firstChar = rawSegment[0];
+				if (std::isdigit(firstChar) || std::isupper(firstChar))
+				{
+					connection = "+";
+				}
 			}
-		}
 
-		// check for explicit operators and handle them accordingly
-		if (rawSegment.starts_with('@'))
-		{
-			// the @ operator is a special explicit operator. It is used to calculate Lineally Centred Items. It allows the end user to directly calculate the Item Qty without using a GrunItem::_itemQuantityFormula. This means it creates a 'modifierExpression' which will NOT be used in the Spatial Value calculation
-			std::string val	= rawSegment.substr(1);
-			modifierExpr = "/" + val + "+1";
-		}
-		else if (rawSegment.starts_with('/') || rawSegment.starts_with('*') || rawSegment.starts_with('-') || rawSegment.starts_with('+'))
-		{
-			// if we're in here it means the user has used an explicit, standard math, operator. When this happens, we have to use the explicit operator OUTSIDE of it's trailing term's parentheses. So the operator must be placed at the left-most character of the term, THEN the opening parenthesis, then the term, then the closing parenthesis
-			connection = rawSegment.substr(0,1);	// make the leading, explicit operator the connection character
-			rawSegment.erase(0,1);					// pop the leading, explicit operator off the term
-		}
-		else
-		{
+			// check for explicit operators and override the simple + connection operator if needed
+			if (rawSegment.starts_with('@'))
+			{
+				// the @ operator is a compunding explicit operator. It is used to calculate Lineally Centred Items. It allows the end user to directly calculate the Item Qty without using a GrunItem::_itemQuantityFormula. This means it creates a 'modifierExpression' which will NOT be used in the Spatial Value calculation
+				std::string val	= rawSegment.substr(1);
+				modifierExpr = "/" + val + "+1";
+			}
+			else if (rawSegment.starts_with('/') || rawSegment.starts_with('*') || rawSegment.starts_with('-') || rawSegment.starts_with('+'))
+			{
+				// if we're in here it means the user has used an explicit, standard math, operator. When this happens, we have to use the explicit operator OUTSIDE of it's trailing term's parentheses. So the operator must be placed at the left-most character of the term, THEN the opening parenthesis, then the term, then the closing parenthesis
+				connection = rawSegment.substr(0,1);	// make the leading, explicit operator the connection character
+				processedSegment.erase(0,1);					// pop the leading, explicit operator off the term
+			}
+
+			// join the current segment to the existing baseExpr with the connection operator
 			if (!processedSegment.empty())
 				baseExpr += connection + "(" + processedSegment + ")";
 			isFirstSegment = false;
-		}
 
-		// calculate spatial value for this segment
-		int segmentExponentTotal = 0;
-		std::regex tokenFinder("[LWDAVC]");
-		auto t_begin	= std::sregex_iterator(processedSegment.begin(), processedSegment.end(), tokenFinder);
-		auto t_end		= std::sregex_iterator();
-		for (std::sregex_iterator it = t_begin; it != t_end; ++it)
-		{
-			// inside a segment, multiplication is the implied operator, so we add the exponent value to the segment's exponent total
-			segmentExponentTotal += static_cast<int>(getTokenExponent(it->str()));
-		}
-
-		// check for explicit operator - look for it in rawSegment because processedSegment has injected implied operators
-		// if the user explicitly used an operator, treat the coefficient as a dimension in 3D space, which adds or removes the SpatialExponentValue of the coefficient to the segmentExponentTotal
-		size_t opPos = rawSegment.find_first_of("*/+-@");
-		bool hasExplicitOperator = (opPos != std::string::npos);
-		if (hasExplicitOperator)
-		{
-			char foundOp = rawSegment[opPos];
-			if (foundOp == '/' || foundOp == '@')
+			// calculate spatial value for this segment
+			int segmentExponentTotal = 0;
+			std::regex tokenFinder("[LWDAVC]");
+			auto t_begin	= std::sregex_iterator(processedSegment.begin(), processedSegment.end(), tokenFinder);
+			auto t_end		= std::sregex_iterator();
+			for (std::sregex_iterator it = t_begin; it != t_end; ++it)
 			{
-				// dividing reduces the segmentExponentTotal
-				segmentExponentTotal -= 1;
-				// std::println("  {:<15} > Reductive operator '{}' detected. Decreasing Spatial Value.", relationship,foundOp);
-			}	
-			else if (foundOp == '*') 
-			{
-				// multiplying increases the segmentExponentTotal
-				segmentExponentTotal += 1;
-				// std::println("  {:<15} > Multiplicative operator '*' detected. Increasing Spatial Value.",relationship);
+				// inside a segment, multiplication is the implied operator, so we add the exponent value to the segment's exponent total
+				segmentExponentTotal += static_cast<int>(getTokenExponent(it->str()));
 			}
-			else 
-			{
-				// adding/subtracting do nothing
-				// std::println("  {:<15} > Additive operator '{}' detected. Spatial Value remains unchanged.", relationship, foundOp);
-			}
-		}
 
-		// the return value takes the highest segmentExponentTotal found from all the segments, ensuring the result is within 0-3
-		int safeSegmentExponentTotal = std::clamp(segmentExponentTotal, 0, 3);
-		if (safeSegmentExponentTotal > static_cast<int>(totalRelationshipSV)) 
-		{
-			totalRelationshipSV = static_cast<SpatialExponentValue>(safeSegmentExponentTotal);
+			// check for explicit operator - look for it in rawSegment because processedSegment has injected implied operators and may be altered by this point
+			// if the user explicitly used an operator, treat the coefficient as a dimension in 3D space, which adds or removes the SpatialExponentValue of the coefficient to the segmentExponentTotal
+			size_t opPos = rawSegment.find_first_of("*/+-@");
+			bool hasExplicitOperator = (opPos != std::string::npos);
+			if (hasExplicitOperator)
+			{
+				char foundOp = rawSegment[opPos];
+				if (foundOp == '/' || foundOp == '@')
+				{
+					// dividing reduces the segmentExponentTotal
+					segmentExponentTotal -= 1;
+					// std::println("  {:<15} > Reductive operator '{}' detected. Decreasing Spatial Value.", relationship,foundOp);
+				}	
+				else if (foundOp == '*') 
+				{
+					// multiplying increases the segmentExponentTotal
+					segmentExponentTotal += 1;
+					// std::println("  {:<15} > Multiplicative operator '*' detected. Increasing Spatial Value.",relationship);
+				}
+				else 
+				{
+					// adding/subtracting do nothing
+					// std::println("  {:<15} > Additive operator '{}' detected. Spatial Value remains unchanged.", relationship, foundOp);
+				}
+			}
+
+			// the return value takes the highest segmentExponentTotal found from all the segments, ensuring the result is within 0-3
+			int safeSegmentExponentTotal = std::clamp(segmentExponentTotal, 0, 3);
+			if (safeSegmentExponentTotal > static_cast<int>(totalRelationshipSV)) 
+			{
+				totalRelationshipSV = static_cast<SpatialExponentValue>(safeSegmentExponentTotal);
+			}
 		}
 	}
 
@@ -860,7 +873,7 @@ double GrunObject::evaluateArithmetic(std::string expression)
 		size_t closeBracket = expression.find(')', openBracket);
 		
 		// safety break
-		if (closeBracket = std::string::npos) 
+		if (closeBracket == std::string::npos) 
 			break;
 		
 		// extract the inside expression, evaluate it, and swap it back int othe string
@@ -868,9 +881,9 @@ double GrunObject::evaluateArithmetic(std::string expression)
 		expression.replace(openBracket, closeBracket - openBracket + 1, std::to_string(evaluateArithmetic(inside)));
 	}
 
-	// 2. Multi-Pass Standard Precedence (MD then AS)
+	// lambda function in GrunObject::evaluateArithmetic() that evaluates a math expression string down to its numeric result obeying the PEDMAS order of precedence
     auto performPass = [&](const std::string& opPattern) {
-        std::regex pattern(R"(([-+]?\d*\.?\d+)\s*()" + opPattern + R"()\s*([-+]?\d*\.?\d+))");
+        std::regex pattern(R"(\(*([-+]?\d*\.?\d+)\)*\s*()" + opPattern + R"()\s*\(*([-+]?\d*\.?\d+)\)*)");
         std::smatch match;
         while (std::regex_search(expression, match, pattern)) {
             double left = std::stod(match[1].str());
