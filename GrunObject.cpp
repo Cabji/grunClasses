@@ -447,7 +447,7 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
         return false;
     }
 
-	// map the GrunItem's QuantitySpatialUnit
+	// map the GrunItem's QuantitySpatialUnit based on the _itemQuantityUnits value
 	item._itemQuantitySpatialUnit	= mapUnitToSpatialExponent(item._itemQuantityUnits);
 	// interpret the GrunItem's relationship string
 	item._calculatedSpatialUnit		= interpretRelationship(item);
@@ -474,23 +474,9 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
 		item._itemQuantity 				= evaluateArithmetic(mathFullExpr);
 	}
 	
-	// if the GrunItem has a compound relationship, the _itemQuantity will already be a value in the GrunItem's _itemQuantityUnits
-	if (item._isCompoundRelationship)
+	if (!item._isCompoundRelationship)
 	{
-		std::println("Item '{}' has a compound relationship, so we'll do nothing.",item._itemName);
-		// int diff = static_cast<int>(item._itemQuantitySpatialUnit) - static_cast<int>(item._calculatedSpatialUnit);
-		// // check for explicit number/factor in the string
-		// bool explicitFactor	= (item._relationship.find_first_of("0123456789.") != std::string::npos);
-
-		// if (diff == 1 && item._calculatedSpatialUnit == SpatialExponentValue::Area && !explicitFactor)
-		// {
-		// 	item._relationQuantity *= m_z;
-		// 	item._itemQuantity *= m_z;
-		// }
-	}
-	else
-	{
-		// non-compounded relationships need the GrunItem's _itemQuantityFormula applied to the _relationQuantity
+		// basic relationships need the GrunItem's _itemQuantityFormula applied to the _relationQuantity (unless it's a direct value calculation - either way this doesn't matter)
 		item._itemQuantity			= applyFormula(item._relationQuantity, item._itemQuantityFormula, item._itemName, "Item Qty");
 	}
 
@@ -885,6 +871,7 @@ double GrunObject::evaluateArithmetic(std::string expression)
 		// extract the inside expression, evaluate it, and swap it back int othe string
 		std::string inside = expression.substr(openBracket + 1, closeBracket - openBracket - 1);
 		expression.replace(openBracket, closeBracket - openBracket + 1, std::to_string(evaluateArithmetic(inside)));
+		openBracket = expression.find_last_of('(');
 	}
 
 	// lambda function in GrunObject::evaluateArithmetic() that evaluates a math expression string down to its numeric result obeying the PEDMAS order of precedence
