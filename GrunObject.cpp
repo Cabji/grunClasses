@@ -686,23 +686,23 @@ SpatialExponentValue GrunObject::interpretRelationship(GrunItem &item)
 			if (hasExplicitOperator)
 			{
 				char foundOp = rawSegment[opPos];
-				if (foundOp == '/' || foundOp == '@')
-				{
-					// dividing reduces the segmentExponentTotal
-					segmentExponentTotal -= 1;
-					// std::println("  {:<15} > Reductive operator '{}' detected. Decreasing Spatial Value.", relationship,foundOp);
-				}	
-				else if (foundOp == '*') 
-				{
-					// multiplying increases the segmentExponentTotal
-					segmentExponentTotal += 1;
-					// std::println("  {:<15} > Multiplicative operator '*' detected. Increasing Spatial Value.",relationship);
-				}
-				else 
-				{
-					// adding/subtracting do nothing
-					// std::println("  {:<15} > Additive operator '{}' detected. Spatial Value remains unchanged.", relationship, foundOp);
-				}
+				// if (foundOp == '/' || foundOp == '@')
+				// {
+				// 	// dividing reduces the segmentExponentTotal
+				// 	segmentExponentTotal -= 1;
+				// 	// std::println("  {:<15} > Reductive operator '{}' detected. Decreasing Spatial Value.", relationship,foundOp);
+				// }	
+				// else if (foundOp == '*') 
+				// {
+				// 	// multiplying increases the segmentExponentTotal
+				// 	segmentExponentTotal += 1;
+				// 	// std::println("  {:<15} > Multiplicative operator '*' detected. Increasing Spatial Value.",relationship);
+				// }
+				// else 
+				// {
+				// 	// adding/subtracting do nothing
+				// 	// std::println("  {:<15} > Additive operator '{}' detected. Spatial Value remains unchanged.", relationship, foundOp);
+				// }
 			}
 
 			// the return value takes the highest segmentExponentTotal found from all the segments, ensuring the result is within 0-3
