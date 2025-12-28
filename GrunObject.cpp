@@ -210,6 +210,7 @@ bool GrunObject::addGrunItem(std::string name, std::string relationship, std::st
 {
 	// zero check
 	GrunItem newItem(name, relationship, quantityFormula, units, primaryLabourFormula);
+	calculateGrunItemBaseExpression(newItem);
 	calculateGrunItemData(newItem);
 	m_items.emplace_back(newItem);
 	return true;
@@ -852,6 +853,16 @@ SpatialExponentValue GrunObject::calculateRelationshipSpatialExponent(const std:
     }
     
     return static_cast<SpatialExponentValue>(maxExponent);
+}
+
+SpatialExponentValue GrunObject::calculateGrunItemBaseExpression(GrunItem &item)
+{
+	std::string	relStr		= item._relationship;
+	std::string	baseExpr	= "";
+	auto		atPos		= relStr.find_last_of('@');
+	baseExpr = relStr.substr(0, atPos);
+	// std::println("baseExpr = {}",baseExpr);
+	return SpatialExponentValue();
 }
 
 double GrunObject::evaluateArithmetic(std::string expression)

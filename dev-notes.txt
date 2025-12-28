@@ -1,6 +1,6 @@
 this file is just a text file where i can save notes while i'm developing the project.
 
-Capturing the significant data that from a relationship's Base Expression
+Capturing the significant data from a relationship's Base Expression
  1. extract the Base Expression from the relationship (anything that occurs prior to the first @ character, if any)
  2. regex match any GrunObject Token and * or / operator found in that base expression string [LWDAVC\/*]
  3. remove the first result and/or last result from the matches vector, if it is a / or * operator (all other operators in the matches are explicit and significant to the Spatial Unit result if they are surrounded by tokens)
@@ -9,4 +9,4 @@ Capturing the significant data that from a relationship's Base Expression
    5a. if / is used, the SEV result decreases. So our final check should see if the result is lower than the Spatial Anchor
    5b. if * is used, the SEV result increases. So our final check should see if the result is higher than the Spatial Anchor
  6. compare the SEV result with the Spatial Anchor value according to which operators were used and choose the correct SEV to return
- 
+
