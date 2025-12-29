@@ -859,9 +859,27 @@ SpatialExponentValue GrunObject::calculateGrunItemBaseExpression(GrunItem &item)
 {
 	std::string	relStr		= item._relationship;
 	std::string	baseExpr	= "";
+	// get the base expression (anything before the last occurence of an @ char, or the whole string)
 	auto		atPos		= relStr.find_last_of('@');
 	baseExpr = relStr.substr(0, atPos);
-	// std::println("baseExpr = {}",baseExpr);
+	// use regex_replace to find significant characters in the baseExpr and put them in a string
+	std::regex	pattern(R"(([^LWDAVC\/*]))");												// match any GrunObject Tokens and explicit / or * operators
+	std::string	resultPattern	= "";														// the replacement pattern used for a regex_replace call
+	std::string	saneBaseExpr	= std::regex_replace(baseExpr, pattern, resultPattern);
+
+	// chomp the first char if its * or /
+	if (!saneBaseExpr.empty() && (saneBaseExpr.front() == '*' || saneBaseExpr.front() == '/'))
+	{
+		saneBaseExpr.erase(0,1);
+	}
+	// chomp the last char if its * or /
+	if (!saneBaseExpr.empty() && (saneBaseExpr.back() == '*' || saneBaseExpr.back() == '/'))
+	{
+		saneBaseExpr.pop_back();
+	}
+	// debug output
+	std::print("baseExpr = {} | ",baseExpr);
+	std::println("saneBaseExpr = {}",saneBaseExpr);
 	return SpatialExponentValue();
 }
 
