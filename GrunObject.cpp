@@ -210,7 +210,7 @@ bool GrunObject::addGrunItem(std::string name, std::string relationship, std::st
 {
 	// zero check
 	GrunItem newItem(name, relationship, quantityFormula, units, primaryLabourFormula);
-	calculateGrunItemBaseExpression(newItem);
+	interpretGrunItemBaseExpression(newItem);
 	calculateGrunItemData(newItem);
 	m_items.emplace_back(newItem);
 	return true;
@@ -855,7 +855,7 @@ SpatialExponentValue GrunObject::calculateRelationshipSpatialExponent(const std:
     return static_cast<SpatialExponentValue>(maxExponent);
 }
 
-SpatialExponentValue GrunObject::calculateGrunItemBaseExpression(GrunItem &item)
+SpatialExponentValue GrunObject::interpretGrunItemBaseExpression(GrunItem &item)
 {
 	std::string	relStr		= item._relationship;
 	std::string	baseExpr	= "";
@@ -867,15 +867,18 @@ SpatialExponentValue GrunObject::calculateGrunItemBaseExpression(GrunItem &item)
 	std::string	resultPattern	= "";														// the replacement pattern used for a regex_replace call
 	std::string	saneBaseExpr	= std::regex_replace(baseExpr, pattern, resultPattern);
 
-	// chomp the first char if its * or /
-	if (!saneBaseExpr.empty() && (saneBaseExpr.front() == '*' || saneBaseExpr.front() == '/'))
+	if (!saneBaseExpr.empty())
 	{
-		saneBaseExpr.erase(0,1);
-	}
-	// chomp the last char if its * or /
-	if (!saneBaseExpr.empty() && (saneBaseExpr.back() == '*' || saneBaseExpr.back() == '/'))
-	{
-		saneBaseExpr.pop_back();
+		while ((saneBaseExpr.front() == '*' || saneBaseExpr.front() == '/'))
+		{
+			// chomp the first char if its * or /
+			saneBaseExpr.erase(0,1);
+		}
+		while ((saneBaseExpr.back() == '*' || saneBaseExpr.back() == '/'))
+		{
+			// chomp the last char if its * or /
+			saneBaseExpr.pop_back();
+		}
 	}
 	// debug output
 	std::print("baseExpr = {} | ",baseExpr);

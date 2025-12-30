@@ -220,7 +220,7 @@ class GrunObject
 	double					applyFormula(double lhs, const std::string &formula, const std::string &itemName, const std::string &type);
 	bool					calculateGrunItemData(GrunItem &item);
 	SpatialExponentValue	calculateRelationshipSpatialExponent(const std::string& relationship) const;	// class method that determines Spatial Value an item's relationship value is creating
-	SpatialExponentValue	calculateGrunItemBaseExpression(GrunItem &item);
+	SpatialExponentValue	interpretGrunItemBaseExpression(GrunItem &item);
 	double 					evaluateArithmetic(std::string expression);
 	SpatialExponentValue	getTokenExponent(std::string_view token);
 	std::string 			substituteRelationshipTokens(const std::string& relationship) const;
