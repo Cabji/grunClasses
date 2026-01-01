@@ -7,10 +7,10 @@
 
 // used for calculating what spatial unit a GrunItem relationship should result in
 enum class SpatialExponentValue {
-    None = 0,
-    Linear   = 1,
-    Area     = 2,
-    Volume   = 3
+    None 	= 0,
+    Linear  = 1,
+    Area    = 2,
+    Volume  = 3
 };
 
 /**
@@ -40,6 +40,7 @@ class GrunItem
 	std::string 							_relationship				= "";		// required value on construction
 	bool									_isCompoundRelationship		= false;	// _isCompoundRelationship is determined by checking if the GrunItem's _calculatedSpatialUnit is smaller than its _itemQuantitySpatialUnit
 	std::string								_baseExpression				= "";		// _baseExpression is the portion of the GrunItem's relationship string that is interpretted to result in the GrunItem's _calculatedSpatialUnit
+	std::string								_baseExpressionIntprForSU	= "";		// the base expression after interpretation for calculating the Spatial Unit
 	std::string								_interprettedRelationship	= "";		// created by GrunObject::interpretRelationship()
 	SpatialExponentValue					_calculatedSpatialUnit		= SpatialExponentValue::None;	// _calculatedSpatialUnit is the SpatialExponentValue (None,Linear,Area,Volume) that the GrunObject calculates from the GrunItem's _relationship
 	double									_relationQuantity			= 0.0;

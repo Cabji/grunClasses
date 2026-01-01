@@ -12,6 +12,18 @@
 		1. flesh out GrunItem members (they are the columns from the inventory spreadsheet (Items))
 */
 
+// assigns a Spatial Unit Value to GrunObject members
+enum class GrunObjectMemberSUV 
+{
+	L	= 1,
+	W	= 1,
+	D	= 1,
+	A	= 2,
+	V	= 3,
+	C	= 1,
+	R	= 1
+};
+
 enum class ShapeType
 {
 	Unknown,
@@ -220,7 +232,7 @@ class GrunObject
 	double					applyFormula(double lhs, const std::string &formula, const std::string &itemName, const std::string &type);
 	bool					calculateGrunItemData(GrunItem &item);
 	SpatialExponentValue	calculateRelationshipSpatialExponent(const std::string& relationship) const;	// class method that determines Spatial Value an item's relationship value is creating
-	SpatialExponentValue	interpretGrunItemBaseExpression(GrunItem &item);
+	bool					interpretGrunItemSpatialValues(GrunItem &item);
 	double 					evaluateArithmetic(std::string expression);
 	SpatialExponentValue	getTokenExponent(std::string_view token);
 	std::string 			substituteRelationshipTokens(const std::string& relationship) const;

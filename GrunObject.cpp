@@ -4,12 +4,21 @@
 #include <functional>
 #include <iostream>
 #include <print>
+#include <ranges>
 #include <regex>
+#include <source_location>
 #include <stdexcept>
 #include <sstream>
 #include "GrunObject.h"
 
 const double PI = std::acos(-1.0);
+
+// regex pattern strings that are stored as constants
+// this is mostly to store these regexes in 1 convenient place in in the source code so you don't have to go searching for them.
+const	std::regex	REGEX_GI_BASEEXPR_SIG_TOKENS_AND_OPS(R"(([^LWDAVCR\/*]))");;
+const	std::regex	REGEX_GO_LINEAL_TOKENS(R"([LWDCR])");
+const	std::regex	REGEX_GO_AREA_TOKENS(R"([A])");
+const	std::regex	REGEX_GO_VOLUME_TOKENS(R"([V])");
 
 // set the mapped relations for GrunObject preoprties to SpatialExponentValues in here. 
 // if you add additional properties to GrunObject, you need to add entries for them in here.
@@ -210,7 +219,10 @@ bool GrunObject::addGrunItem(std::string name, std::string relationship, std::st
 {
 	// zero check
 	GrunItem newItem(name, relationship, quantityFormula, units, primaryLabourFormula);
-	interpretGrunItemBaseExpression(newItem);
+	if (interpretGrunItemBaseExpression(newItem))
+	{
+
+	}
 	calculateGrunItemData(newItem);
 	m_items.emplace_back(newItem);
 	return true;
@@ -855,35 +867,70 @@ SpatialExponentValue GrunObject::calculateRelationshipSpatialExponent(const std:
     return static_cast<SpatialExponentValue>(maxExponent);
 }
 
-SpatialExponentValue GrunObject::interpretGrunItemBaseExpression(GrunItem &item)
+bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 {
+	// data acquisition - make a copy of _relationship because we need to modify it, but preserve the original value
+	auto current = std::source_location::current();									// for debugging output if needed
 	std::string	relStr		= item._relationship;
 	std::string	baseExpr	= "";
 	// get the base expression (anything before the last occurence of an @ char, or the whole string)
 	auto		atPos		= relStr.find_last_of('@');
 	baseExpr = relStr.substr(0, atPos);
 	// use regex_replace to find significant characters in the baseExpr and put them in a string
-	std::regex	pattern(R"(([^LWDAVC\/*]))");												// match any GrunObject Tokens and explicit / or * operators
 	std::string	resultPattern	= "";														// the replacement pattern used for a regex_replace call
-	std::string	saneBaseExpr	= std::regex_replace(baseExpr, pattern, resultPattern);
+	std::string	saneBaseExpr	= std::regex_replace(baseExpr, REGEX_GI_BASEEXPR_SIG_TOKENS_AND_OPS, resultPattern);
 
-	if (!saneBaseExpr.empty())
+
+	// zero-check and return out false to indicate interpretation was failure
+	if (saneBaseExpr.empty())
+		return false;
+
+	// we can assume the saneBaseExpr has *something* in it at this point
+	while ((saneBaseExpr.front() == '*' || saneBaseExpr.front() == '/'))
 	{
-		while ((saneBaseExpr.front() == '*' || saneBaseExpr.front() == '/'))
-		{
-			// chomp the first char if its * or /
-			saneBaseExpr.erase(0,1);
-		}
-		while ((saneBaseExpr.back() == '*' || saneBaseExpr.back() == '/'))
-		{
-			// chomp the last char if its * or /
-			saneBaseExpr.pop_back();
-		}
+		// chomp the first char if its * or /
+		saneBaseExpr.erase(0,1);
 	}
+	while ((saneBaseExpr.back() == '*' || saneBaseExpr.back() == '/'))
+	{
+		// chomp the last char if its * or /
+		saneBaseExpr.pop_back();
+	}
+
+	// assign saneBaseExpr to the appropriate member in the item
+	item._baseExpressionIntprForSU = saneBaseExpr;
+
+	// now we have to calculate what the saneBaseExpr equals in Spatial Unit Value
+	// set the saneBaseExpr's total Spatial Value to 0
+	int exprTotalSV	= 0;
+	
+	// dev-note: we are assuming saneBaseExpr is a SANITIZED string. If you get unexpected behaviour, you should probably check the value of saneBaseExpr
+	// convert all tokens in saneBaseExpr to their Spatial Values
+	std::string numericExpr = saneBaseExpr;
+	std::replace(numericExpr.begin(), numericExpr.end(), 'L', '1');
+	std::replace(numericExpr.begin(), numericExpr.end(), 'W', '1');
+	std::replace(numericExpr.begin(), numericExpr.end(), 'D', '1');
+	std::replace(numericExpr.begin(), numericExpr.end(), 'C', '1');
+	std::replace(numericExpr.begin(), numericExpr.end(), 'R', '1');
+	std::replace(numericExpr.begin(), numericExpr.end(), 'A', '2');
+	std::replace(numericExpr.begin(), numericExpr.end(), 'V', '3');
+	std::replace(numericExpr.begin(), numericExpr.end(), '*', '+');
+	
+	// std::regex_replace(numericExpr,REGEX_GO_LINEAL_TOKENS,numericExpr);
+	// std::regex_replace(numericExpr,REGEX_GO_AREA_TOKENS,numericExpr);
+	// std::regex_replace(numericExpr,REGEX_GO_VOLUME_TOKENS,numericExpr);
+
+	// process the operators
+
 	// debug output
-	std::print("baseExpr = {} | ",baseExpr);
-	std::println("saneBaseExpr = {}",saneBaseExpr);
-	return SpatialExponentValue();
+	// std::println("Debug Output in: {}",current.function_name());
+	std::print("item.rel: {:>15} ",item._relationship);
+	std::print("baseExpr: {:>15} ",baseExpr);
+	std::print("saneBaseExpr: {:>6} ",saneBaseExpr);
+	std::println("numericExpr: {:>6}",numericExpr);
+
+	// return true to indicate interpretation was a success
+	return true;
 }
 
 double GrunObject::evaluateArithmetic(std::string expression)
