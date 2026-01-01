@@ -4,9 +4,9 @@ Capturing the significant data from a relationship's Base Expression
  /1. extract the Base Expression from the relationship (anything that occurs prior to the first @ character, if any)
  /2. regex match any GrunObject Token and * or / operator found in that base expression string [LWDAVC\/*]
  /3. remove the first result and/or last result from the matches vector if it is a / or * operator (all other operators in the matches are explicit and significant to the Spatial Unit result if they are surrounded by tokens)
- 4. find the token with the highest Spatial Exponent Value (SEV) in the result: call this the "Spatial Anchor"
- 5. combine the Tokens' SEV in the result
-   5a. if / is used, the SEV result decreases. So our final check should see if the result is lower than the Spatial Anchor
-   5b. if * is used, the SEV result increases. So our final check should see if the result is higher than the Spatial Anchor
- 6. compare the SEV result with the Spatial Anchor value according to which operators were used and choose the correct SEV to return
-
+ /4. convert * operators to +
+ /6. convert all GrunObject Tokens to their SEV as integers (call this the numeric expression)
+ 7. find the token with the highest Spatial Exponent Value (SEV) in the result: call this the "Spatial Anchor"
+ 8. evaluate any arithmetic as required in the numeric expression to remove all + operators
+ 9. find the largest single integer in the resulting numeric expression
+ 10. compare the SEV result with the Spatial Anchor

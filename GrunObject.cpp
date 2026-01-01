@@ -3,6 +3,7 @@
 #include <format>
 #include <functional>
 #include <iostream>
+#include <optional>
 #include <print>
 #include <ranges>
 #include <regex>
@@ -920,14 +921,35 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 	// std::regex_replace(numericExpr,REGEX_GO_AREA_TOKENS,numericExpr);
 	// std::regex_replace(numericExpr,REGEX_GO_VOLUME_TOKENS,numericExpr);
 
-	// process the operators
+	// process the operators - loop through the numericExpr char by char with the index value avaiable
+	std::string	numericExprResult;
+	for (auto [i, c] : std::views::enumerate(numericExpr))
+	{
+		std::optional<int> r;
+		if (c == '+' && i > 0 && i < numericExpr.length())
+		{
+			const int	lhs	= numericExpr[i-1] - '0';						// dev-note: we must use - '0' here to convert the CHAR 1 into type int 1
+			const int	rhs	= numericExpr[i+1] - '0';
+			r	= lhs + rhs;
+		}
+		if (r.has_value())
+			numericExprResult += std::to_string(r.value());
+		else
+		{
+			const bool	plusOnLeft 	= (i > 0 && numericExpr[i-1] == '+');
+			const bool	plusOnRight	= (i+1 < numericExpr.length() && numericExpr[i+1] == '+');
+			if (!plusOnLeft && !plusOnRight && c != '+')
+				numericExprResult += c;
+		}
 
+	}
 	// debug output
 	// std::println("Debug Output in: {}",current.function_name());
 	std::print("item.rel: {:>15} ",item._relationship);
 	std::print("baseExpr: {:>15} ",baseExpr);
 	std::print("saneBaseExpr: {:>6} ",saneBaseExpr);
-	std::println("numericExpr: {:>6}",numericExpr);
+	std::print("numericExpr: {:>6} ",numericExpr);
+	std::println("numericExprRes: {:>6}",numericExprResult);
 
 	// return true to indicate interpretation was a success
 	return true;
