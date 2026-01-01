@@ -219,7 +219,7 @@ bool GrunObject::addGrunItem(std::string name, std::string relationship, std::st
 {
 	// zero check
 	GrunItem newItem(name, relationship, quantityFormula, units, primaryLabourFormula);
-	if (interpretGrunItemBaseExpression(newItem))
+	if (interpretGrunItemSpatialValues(newItem))
 	{
 
 	}

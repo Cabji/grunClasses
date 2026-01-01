@@ -9,7 +9,7 @@ int main ()
 	slab.addGrunItem("Delivery - Sub Grade","1","","delivery(ies)","*0.5");
 	slab.addGrunItem("Subgrade - Fines","D * A","","m3","/2");
 	slab.addGrunItem("Delivery - Steel","1","","delivery(ies)","*0.5");
-	slab.addGrunItem("Ableflex - 10mm x 100mm, Stick Backed","2L2W","/25","roll(s)","*0.5");
+	slab.addGrunItem("Ableflex - 10mm x 100mm, Stick Backed","L * 2L2W","/25","roll(s)","*0.5");
 	slab.addGrunItem("Dowel R12 450 HDG","2L1W@0.6","","bar(s)","/ 14");
 	slab.addGrunItem("Mesh SL92", "2A","/ 12.5","mat(s)","* 0.66");
 	slab.addGrunItem("Tie Wire (Blek)", "1", "", "roll(s)", "/20");
