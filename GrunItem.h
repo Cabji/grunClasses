@@ -41,11 +41,11 @@ class GrunItem
 	bool									_isCompoundRelationship		= false;						// _isCompoundRelationship is determined by checking if the GrunItem's _calculatedSpatialUnit is smaller than its _itemQuantitySpatialUnit
 	std::string								_baseExpression				= "";							// _baseExpression is the portion of the GrunItem's relationship string that is interpretted to result in the GrunItem's _calculatedSpatialUnit
 	std::string								_baseExpressionIntprForSU	= "";							// the base expression interpretted for calculating the Spatial Unit
-	std::string								_baseExpressionIntprNumeric	= "";							// the base expression after interpretation with numeric values in place of GrunObject Tokens
+	std::string								_baseExpressionIntprNumeric	= "";							// the base expression after interpretation with numeric values in place of GrunObject Tokens and + in place of * operators
 	SpatialExponentValue					_spatialAnchor				= SpatialExponentValue::None;	// the 'Spatial Anchor' value
+	SpatialExponentValue					_spatialUnit				= SpatialExponentValue::None;	// the 'Spatial Unit' value (after interpretting and considering the entire Base Expression)
 	double									_spatialQuantity			= 0.0;							// the 'Spatial Quantity' value
 	std::string								_interprettedRelationship	= "";							// created by GrunObject::interpretRelationship()
-	SpatialExponentValue					_calculatedSpatialUnit		= SpatialExponentValue::None;	// _calculatedSpatialUnit is the SpatialExponentValue (None,Linear,Area,Volume) that the GrunObject calculates from the GrunItem's _relationship
 	double									_relationQuantity			= 0.0;
 	SpatialExponentValue					_itemQuantitySpatialUnit	= SpatialExponentValue::None;	// _itemQuantitySpatialUnit is the SpatialExponentValue (None,Linear,Area,Volume) that is assigned to the GrunItem based on the GrunItem's _itemQuantityUnits value *IF* the _itemQuantityUnits are already of a spatial unit type (dev-note: this mostly only works if the _itemQuantityUnits are 'm', 'm2', 'm3' and these values are hard coded in GrunObject::mapUnitToSpatialExponent() which will need to be more flexible for locales in the future)
 	std::string 							_itemQuantityFormula		= "";

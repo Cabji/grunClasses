@@ -235,6 +235,7 @@ class GrunObject
 	bool					interpretGrunItemSpatialValues(GrunItem &item);
 	double 					evaluateArithmetic(std::string expression);
 	SpatialExponentValue	getTokenExponent(std::string_view token);
+	SpatialExponentValue	getTokenExponent(char token);
 	std::string 			substituteRelationshipTokens(const std::string& relationship) const;
 	SpatialExponentValue	mapUnitToSpatialExponent(const std::string& unit) const;
 	std::string				injectImplicitOperators(std::string &segment);

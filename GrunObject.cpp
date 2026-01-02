@@ -14,6 +14,11 @@
 
 const double PI = std::acos(-1.0);
 
+const	std::string	GO_LINEAL_TOKENS					= "LWDCR";
+const	std::string	GO_AREA_TOKENS						= "A";
+const	std::string	GO_VOLUME_TOKENS					= "V";
+const	std::string	GO_SPATIAL_SIGNIFICANT_OPERATORS	= "*";
+
 // regex pattern strings that are stored as constants
 // this is mostly to store these regexes in 1 convenient place in in the source code so you don't have to go searching for them.
 const	std::regex	REGEX_GI_BASEEXPR_SIG_TOKENS_AND_OPS(R"(([^LWDAVCR\/*]))");;
@@ -464,12 +469,12 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
 	// map the GrunItem's QuantitySpatialUnit based on the _itemQuantityUnits value
 	item._itemQuantitySpatialUnit	= mapUnitToSpatialExponent(item._itemQuantityUnits);
 	// interpret the GrunItem's relationship string
-	item._calculatedSpatialUnit		= interpretRelationship(item);
+	item._spatialUnit		= interpretRelationship(item);
 	// Decide the GrunItem's Compound Relationship status (based on if it has a Quantity Formula or not)
 	// dev-note: _isCompoundRelationship will be false if the GrunItem has an _itemQuantityFormula set.
-	// 			 if _itemQuantityFormula is empty, _isCompoundRelationship will be decided based on comparing _calculatedSpatialUnit and _itemQuantitySpatialUnit
+	// 			 if _itemQuantityFormula is empty, _isCompoundRelationship will be decided based on comparing _spatialUnit and _itemQuantitySpatialUnit
 	if (item._itemQuantityFormula.empty())
-		item._isCompoundRelationship = (static_cast<int>(item._calculatedSpatialUnit) > static_cast<int>(item._itemQuantitySpatialUnit));
+		item._isCompoundRelationship = (static_cast<int>(item._spatialUnit) > static_cast<int>(item._itemQuantitySpatialUnit));
 	else
 		item._isCompoundRelationship = false;
 	
@@ -738,7 +743,7 @@ SpatialExponentValue GrunObject::interpretRelationship(GrunItem &item)
 	{
 		item._interprettedRelationship = baseExpr;
 	}
-	item._calculatedSpatialUnit = totalRelationshipSV;
+	item._spatialUnit = totalRelationshipSV;
 	return totalRelationshipSV;
 }
 
@@ -913,19 +918,11 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 	// convert all GrunObject Tokens in saneBaseExpr to their Spatial Values
 	for (char& c : numericExpr) 
 	{
-		switch (c) 
-		{
-			case 'L': case 'W': case 'D': case 'C': case 'R': 
-				c = '1'; break;
-			case 'A': 
-				c = '2'; break;
-			case 'V': 
-				c = '3'; break;
-			case '*': 
-				c = '+'; break;
-			default: 
-				break;
-		}
+		// convert * operators to +, else convert GrunObject Token to its SpatialExponentValue and cast the number back as a char in the numericExpr string
+		if (c == '*')
+			c = '+';
+		else
+			c = static_cast<char>(static_cast<int>(getTokenExponent(c)) + 48);	// dev-note: + 48 to correctly cast the returned int value BACK to a char
 	}
 
 	item._baseExpressionIntprNumeric = numericExpr;
@@ -961,12 +958,13 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 		}
 	}
 
-	int spatialValue = 0;
+	int spatialUnit = 0;
 	auto digitsAfter	= numericExprResult
             			| std::views::transform([](char c) { return c - '0'; });
 	if (!digitsAfter.empty())
-		spatialValue = std::ranges::max(digitsAfter);
+		spatialUnit = std::ranges::max(digitsAfter);
 	
+	item._spatialUnit = static_cast<SpatialExponentValue>(spatialUnit);
 
 	// debug output
 	// std::println("Debug Output in: {}",current.function_name());
@@ -976,7 +974,7 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 	std::print("bEIntNum: {:>5} ",item._baseExpressionIntprNumeric);
 	std::print("S.A.: {:>1} ",spatialExponentValueToString(item._spatialAnchor));
 	std::print("numericExprRes: {:>6} ",numericExprResult);
-	std::println("S.U.: {:>1} ",spatialValue);
+	std::println("S.U.: {:>1} ",spatialExponentValueToString(item._spatialUnit));
 
 	// return true to indicate interpretation was a success
 	return true;
@@ -1040,9 +1038,21 @@ double GrunObject::evaluateArithmetic(std::string expression)
 // returns a SpatialExponentValue (None,Linear,Area,Volume) that corressponds to the token given to the function
 SpatialExponentValue GrunObject::getTokenExponent(std::string_view token)
 {
-    if (token == "V") return SpatialExponentValue::Volume;
-    if (token == "A") return SpatialExponentValue::Area;
-    if (token == "L"	|| token == "W"	|| token == "D" || 
-        token == "PH"	|| token == "C"	|| token == "R") return SpatialExponentValue::Linear;   
+
+	if (GO_LINEAL_TOKENS.contains(token))	return SpatialExponentValue::Linear;
+	if (GO_AREA_TOKENS.contains(token))		return SpatialExponentValue::Area;
+	if (GO_VOLUME_TOKENS.contains(token))	return SpatialExponentValue::Volume;
+
+    // if (token == "V") return SpatialExponentValue::Volume;
+    // if (token == "A") return SpatialExponentValue::Area;
+    // if (token == "L"	|| token == "W"	|| token == "D" || 
+        // token == "PH"	|| token == "C"	|| token == "R") return SpatialExponentValue::Linear;   
     return SpatialExponentValue::None;
+}
+
+// overload to use char argument
+SpatialExponentValue GrunObject::getTokenExponent(char token)
+{
+	std::string s(1,token);
+	return getTokenExponent(s);
 }

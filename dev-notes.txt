@@ -9,8 +9,19 @@ Capturing the significant data from a relationship's Base Expression
  /7. find the token with the highest Spatial Exponent Value (SEV) in the result: call this the "Spatial Anchor"
  /8. evaluate any arithmetic as required in the numeric expression to remove all + operators
  /9. find the largest single integer in the resulting numeric expression
+
+New task: Evaluating the base expression to get the GrunItem's Spatial Quantity.
+ 1. get the baseExpr (with all numeric factors, operators and Tokens)
+ 2. convert the Tokens in the base expression to their value from the GrunObject, but also:
+	2a. insert implicit * operators between GrunObject Token and its numeric factor (if applicable)
+	2b. enclose the affected factors in parentheses as these conversions happen to maintain arithmetical integrity (PEDMAS)
+		note: you already have the code in another function (possibly evaluateArithmetic() ?)
+3. insert implicit + operators between base expression terms and enclose with parentheses where applicable
+4. evaluate the converted numeric base expression with PEDMAS arithmetic
+
  10. compare the SEV result with the Spatial Anchor
 	10a. why are we comparing these 2 values?
+		we might be comparing them because we may need to know if the SV travelled up or down, depending on the factors in the base expression. i don't know why yet.
 
  the Spatial Anchor is the spatial exponent value that the Base Expression is interpretted to have BEFORE the Base Expression is evaluated for Spatial Unit/Value purposes
  the Spatial Unit is the spatial exponent value that the Base Expression  is interpretted to have AFTER the Base Expression is evaluated for Spatial Unit/Value purposes
