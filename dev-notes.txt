@@ -15,3 +15,10 @@ Capturing the significant data from a relationship's Base Expression
  the Spatial Anchor is the spatial exponent value that the Base Expression is interpretted to have BEFORE the Base Expression is evaluated for Spatial Unit/Value purposes
  the Spatial Unit is the spatial exponent value that the Base Expression  is interpretted to have AFTER the Base Expression is evaluated for Spatial Unit/Value purposes
  the reason we want the spatial exponent values both before and after interpretation is because the user can use compound relationships in the Base Expression which will alter the spatial exponent value, and we may need to detect if they are doing this
+
+Spatial Quantity
+ 1. How do we calculate the Spatial Quantity? (SQ)
+	we have available: 
+		a. Item relationship
+		b. Base Expression
+		c. 

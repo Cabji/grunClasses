@@ -16,7 +16,7 @@ int main ()
 	slab.addGrunItem("Kahnkreet","V","","m3","/ 2.5");
 	slab.addGrunItem("Labour - Secondary", "1", "", "hour(s)", "");
 	slab.addGrunItem("Dowel R12 450 HDG","5L@0.6","","bar(s)","/ 14");
-	slab.addGrunItem("N12 6000", "3 * 1.2/2L@1.2", "/6.0", "bars?", "");
+	slab.addGrunItem("N12 6000", "3* 1.2/2L@1.2", "/6.0", "bars?", "");
 	
 	std::println("GrunObject's details: Name: {}\n\tLength: {}\tWidth: {}\tDepth: {}\tArea: {}",slab.getObjectName(),slab.getObjectProperty("length"),slab.getObjectProperty("width"),slab.getObjectProperty("depth"),slab.getObjectProperty("area"));
 	std::println("GrunObject [{}] Item List information:\n{}", slab.getObjectName(), slab.getGrunItemListInfoAsString("%Y%m%d %H%M%S"));

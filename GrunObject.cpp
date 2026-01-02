@@ -353,19 +353,19 @@ std::string GrunObject::getGrunItemListInfoAsString(const std::string dateFormat
 	if (!m_items.empty()) { returnVal = "GrunItems in Element '" + m_name +"'\n"; }
 	for (auto item : m_items)
 	{
-		returnVal += std::format("{:<39}",item._itemName.substr(0,40)) +
-					 std::format("{:<17}","Rel: " + item._relationship) + 
-					 std::format("{:<13}","SU: " + spatialExponentValueToString(item._calculatedSpatialUnit)) + 
+		returnVal += std::format("{:<16} ",item._itemName.substr(0,16)) +
+					 std::format("{:<17} ","Rel: " + item._relationship.substr(0,12)) + 
+					 std::format("{:<13} ","SA: " + spatialExponentValueToString(item._spatialAnchor).substr(0,9)) + 
 					 std::format("{:<9}","Spa.Qty: ") + 
-					 std::format("{:>7.2f}",item._relationQuantity) + " " +
+					 std::format("{:>7.2f} ",item._relationQuantity) +
 					 std::format("{:<10}","Item.Qty: ") + 
-					 std::format("{:>7.2f}",item._itemQuantity) + " " +
-					 std::format("{:<8}",item._itemQuantityUnits.substr(0,8)) + " " +
-					 std::format("{:<10}","P.Labour: ") + 
-					 std::format("{:>6.2f}", item._itemPrimaryLabour) + 
-					 std::format("{:<8}"," hour(s) ") +
-					 std::format("{:<14}","LKGWCalcTime: ") + 
-					 std::format("{:>}", item.getCalculatedTimeString(item._itemLKGWCalculated, dateFormat)) +
+					 std::format("{:>7.2f} ",item._itemQuantity) +
+					 std::format("{:<8} ",item._itemQuantityUnits.substr(0,8)) +
+					 std::format("{:<10} ","P.Labour:") + 
+					 std::format("{:>6.2f} ", item._itemPrimaryLabour) + 
+					 std::format("{:<6} "," hr(s)") +
+					 std::format("{:<6} ","L.CT:") + 
+					 std::format("{:>}", item.getCalculatedTimeString(item._itemLKGWCalculated, dateFormat).substr(0,13)) +
 					 "\n";
 	}
 	return returnVal;
@@ -883,6 +883,7 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 	if (saneBaseExpr.empty())
 		return false;
 
+	item._baseExpression = baseExpr;
 	// data acquisition - make a copy of _relationship because we need to modify it, but preserve the original value
 	auto		current			= std::source_location::current();							// for debugging output if needed
 	int			spatialAnchor	= 0;
@@ -927,6 +928,8 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 		}
 	}
 
+	item._baseExpressionIntprNumeric = numericExpr;
+
 	// get the largest number in the numericExpr, clamp to min 0 and max 3
 	auto digits	= numericExpr 
 				| std::views::filter(::isdigit)
@@ -934,7 +937,7 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 
 	if (!digits.empty())
 		spatialAnchor 	= std::clamp(std::ranges::max(digits),0,3);
-						  
+	item._spatialAnchor	= static_cast<SpatialExponentValue>(spatialAnchor);						  
 
 	// process the operators - loop through the numericExpr char by char with the index value avaiable
 	std::string	numericExprResult;
@@ -968,12 +971,12 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 	// debug output
 	// std::println("Debug Output in: {}",current.function_name());
 	std::print("item.rel: {:>15} ",item._relationship);
-	std::print("baseExpr: {:>10} ",baseExpr);
-	std::print("saneBaseExpr: {:>5} ",saneBaseExpr);
-	std::print("numericExpr: {:>5} ",numericExpr);
-	std::print("S.A.: {:>1} ",spatialAnchor);
+	std::print("baseExpr: {:>10} ",item._baseExpression);
+	std::print("bEForSV: {:>5} ",item._baseExpressionIntprForSU);
+	std::print("bEIntNum: {:>5} ",item._baseExpressionIntprNumeric);
+	std::print("S.A.: {:>1} ",spatialExponentValueToString(item._spatialAnchor));
 	std::print("numericExprRes: {:>6} ",numericExprResult);
-	std::println("S.V.: {:>1} ",spatialValue);
+	std::println("S.U.: {:>1} ",spatialValue);
 
 	// return true to indicate interpretation was a success
 	return true;
