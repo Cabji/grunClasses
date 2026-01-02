@@ -7,7 +7,7 @@ int main ()
 	GrunObject slab("rectangle", "Slab A", 30, 3.1, 0.15, "horizontal", "Stage 1");
 	slab.addGrunItem("Excavator","8","","hour(s)","/2");
 	slab.addGrunItem("Delivery - Sub Grade","1","","delivery(ies)","*0.5");
-	slab.addGrunItem("Subgrade - Fines","D * A","","m3","/2");
+	slab.addGrunItem("Subgrade - Fines","0.05 * A","","m3","/2");
 	slab.addGrunItem("Delivery - Steel","1","","delivery(ies)","*0.5");
 	slab.addGrunItem("Ableflex - 10mm x 100mm, Stick Backed","2L2W","/25","roll(s)","*0.5");
 	slab.addGrunItem("Dowel R12 450 HDG","2L1W@0.6","","bar(s)","/ 14");

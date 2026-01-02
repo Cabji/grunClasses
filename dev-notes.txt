@@ -6,7 +6,12 @@ Capturing the significant data from a relationship's Base Expression
  /3. remove the first result and/or last result from the matches vector if it is a / or * operator (all other operators in the matches are explicit and significant to the Spatial Unit result if they are surrounded by tokens)
  /4. convert * operators to +
  /6. convert all GrunObject Tokens to their SEV as integers (call this the numeric expression)
- 7. find the token with the highest Spatial Exponent Value (SEV) in the result: call this the "Spatial Anchor"
- 8. evaluate any arithmetic as required in the numeric expression to remove all + operators
- 9. find the largest single integer in the resulting numeric expression
+ /7. find the token with the highest Spatial Exponent Value (SEV) in the result: call this the "Spatial Anchor"
+ /8. evaluate any arithmetic as required in the numeric expression to remove all + operators
+ /9. find the largest single integer in the resulting numeric expression
  10. compare the SEV result with the Spatial Anchor
+	10a. why are we comparing these 2 values?
+
+ the Spatial Anchor is the spatial exponent value that the Base Expression is interpretted to have BEFORE the Base Expression is evaluated for Spatial Unit/Value purposes
+ the Spatial Unit is the spatial exponent value that the Base Expression  is interpretted to have AFTER the Base Expression is evaluated for Spatial Unit/Value purposes
+ the reason we want the spatial exponent values both before and after interpretation is because the user can use compound relationships in the Base Expression which will alter the spatial exponent value, and we may need to detect if they are doing this

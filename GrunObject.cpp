@@ -17,9 +17,9 @@ const double PI = std::acos(-1.0);
 // regex pattern strings that are stored as constants
 // this is mostly to store these regexes in 1 convenient place in in the source code so you don't have to go searching for them.
 const	std::regex	REGEX_GI_BASEEXPR_SIG_TOKENS_AND_OPS(R"(([^LWDAVCR\/*]))");;
-const	std::regex	REGEX_GO_LINEAL_TOKENS(R"([LWDCR])");
-const	std::regex	REGEX_GO_AREA_TOKENS(R"([A])");
-const	std::regex	REGEX_GO_VOLUME_TOKENS(R"([V])");
+const	std::regex	REGEX_GO_LINEAL_TOKENS(R"([LWDCR]+)");
+const	std::regex	REGEX_GO_AREA_TOKENS(R"([A]+)");
+const	std::regex	REGEX_GO_VOLUME_TOKENS(R"([V]+)");
 
 // set the mapped relations for GrunObject preoprties to SpatialExponentValues in here. 
 // if you add additional properties to GrunObject, you need to add entries for them in here.
@@ -870,21 +870,22 @@ SpatialExponentValue GrunObject::calculateRelationshipSpatialExponent(const std:
 
 bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 {
-	// data acquisition - make a copy of _relationship because we need to modify it, but preserve the original value
-	auto current = std::source_location::current();									// for debugging output if needed
-	std::string	relStr		= item._relationship;
-	std::string	baseExpr	= "";
-	// get the base expression (anything before the last occurence of an @ char, or the whole string)
-	auto		atPos		= relStr.find_last_of('@');
-	baseExpr = relStr.substr(0, atPos);
-	// use regex_replace to find significant characters in the baseExpr and put them in a string
-	std::string	resultPattern	= "";														// the replacement pattern used for a regex_replace call
-	std::string	saneBaseExpr	= std::regex_replace(baseExpr, REGEX_GI_BASEEXPR_SIG_TOKENS_AND_OPS, resultPattern);
-
-
 	// zero-check and return out false to indicate interpretation was failure
+	std::string	relStr			= item._relationship;
+	std::string	baseExpr		= "";
+	// get the base expression (anything before the last occurence of an @ char, or the whole string)
+	auto		atPos			= relStr.find_last_of('@');
+	baseExpr = relStr.substr(0, atPos);
+	std::string	resultPattern	= "";
+	// use regex_replace to find significant characters in the baseExpr and put them in a string														// the replacement pattern used for a regex_replace call
+	
+	std::string	saneBaseExpr	= std::regex_replace(baseExpr, REGEX_GI_BASEEXPR_SIG_TOKENS_AND_OPS, resultPattern);
 	if (saneBaseExpr.empty())
 		return false;
+
+	// data acquisition - make a copy of _relationship because we need to modify it, but preserve the original value
+	auto		current			= std::source_location::current();							// for debugging output if needed
+	int			spatialAnchor	= 0;
 
 	// we can assume the saneBaseExpr has *something* in it at this point
 	while ((saneBaseExpr.front() == '*' || saneBaseExpr.front() == '/'))
@@ -905,21 +906,35 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 	// set the saneBaseExpr's total Spatial Value to 0
 	int exprTotalSV	= 0;
 	
-	// dev-note: we are assuming saneBaseExpr is a SANITIZED string. If you get unexpected behaviour, you should probably check the value of saneBaseExpr
-	// convert all tokens in saneBaseExpr to their Spatial Values
 	std::string numericExpr = saneBaseExpr;
-	std::replace(numericExpr.begin(), numericExpr.end(), 'L', '1');
-	std::replace(numericExpr.begin(), numericExpr.end(), 'W', '1');
-	std::replace(numericExpr.begin(), numericExpr.end(), 'D', '1');
-	std::replace(numericExpr.begin(), numericExpr.end(), 'C', '1');
-	std::replace(numericExpr.begin(), numericExpr.end(), 'R', '1');
-	std::replace(numericExpr.begin(), numericExpr.end(), 'A', '2');
-	std::replace(numericExpr.begin(), numericExpr.end(), 'V', '3');
-	std::replace(numericExpr.begin(), numericExpr.end(), '*', '+');
-	
-	// std::regex_replace(numericExpr,REGEX_GO_LINEAL_TOKENS,numericExpr);
-	// std::regex_replace(numericExpr,REGEX_GO_AREA_TOKENS,numericExpr);
-	// std::regex_replace(numericExpr,REGEX_GO_VOLUME_TOKENS,numericExpr);
+
+	// dev-note: we are assuming saneBaseExpr is a SANITIZED string. If you get unexpected behaviour, you should probably check the value of saneBaseExpr
+	// convert all GrunObject Tokens in saneBaseExpr to their Spatial Values
+	for (char& c : numericExpr) 
+	{
+		switch (c) 
+		{
+			case 'L': case 'W': case 'D': case 'C': case 'R': 
+				c = '1'; break;
+			case 'A': 
+				c = '2'; break;
+			case 'V': 
+				c = '3'; break;
+			case '*': 
+				c = '+'; break;
+			default: 
+				break;
+		}
+	}
+
+	// get the largest number in the numericExpr, clamp to min 0 and max 3
+	auto digits	= numericExpr 
+				| std::views::filter(::isdigit)
+            	| std::views::transform([](char c) { return c - '0'; });
+
+	if (!digits.empty())
+		spatialAnchor 	= std::clamp(std::ranges::max(digits),0,3);
+						  
 
 	// process the operators - loop through the numericExpr char by char with the index value avaiable
 	std::string	numericExprResult;
@@ -941,15 +956,24 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 			if (!plusOnLeft && !plusOnRight && c != '+')
 				numericExprResult += c;
 		}
-
 	}
+
+	int spatialValue = 0;
+	auto digitsAfter	= numericExprResult
+            			| std::views::transform([](char c) { return c - '0'; });
+	if (!digitsAfter.empty())
+		spatialValue = std::ranges::max(digitsAfter);
+	
+
 	// debug output
 	// std::println("Debug Output in: {}",current.function_name());
 	std::print("item.rel: {:>15} ",item._relationship);
-	std::print("baseExpr: {:>15} ",baseExpr);
-	std::print("saneBaseExpr: {:>6} ",saneBaseExpr);
-	std::print("numericExpr: {:>6} ",numericExpr);
-	std::println("numericExprRes: {:>6}",numericExprResult);
+	std::print("baseExpr: {:>10} ",baseExpr);
+	std::print("saneBaseExpr: {:>5} ",saneBaseExpr);
+	std::print("numericExpr: {:>5} ",numericExpr);
+	std::print("S.A.: {:>1} ",spatialAnchor);
+	std::print("numericExprRes: {:>6} ",numericExprResult);
+	std::println("S.V.: {:>1} ",spatialValue);
 
 	// return true to indicate interpretation was a success
 	return true;
