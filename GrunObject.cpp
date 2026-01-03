@@ -22,9 +22,17 @@ const	std::string	GO_SPATIAL_SIGNIFICANT_OPERATORS	= "*";
 // regex pattern strings that are stored as constants
 // this is mostly to store these regexes in 1 convenient place in in the source code so you don't have to go searching for them.
 const	std::regex	REGEX_GI_BASEEXPR_SIG_TOKENS_AND_OPS(R"(([^LWDAVCR\/*]))");;
+const	std::regex	REGEX_GO_ALL_TOKENS(R"([LWDCRAV])");
 const	std::regex	REGEX_GO_LINEAL_TOKENS(R"([LWDCR]+)");
 const	std::regex	REGEX_GO_AREA_TOKENS(R"([A]+)");
 const	std::regex	REGEX_GO_VOLUME_TOKENS(R"([V]+)");
+const	std::regex	REGEX_SHN_TO_PEDMAS_0_WRAP_ALL_IN_PARENTHESES(R"((.+))");
+const	std::regex	REGEX_SHN_TO_PEDMAS_1_EXPLICIT_OPERTOR(R"(([+\-*\/]))");
+const	std::regex	REGEX_SHN_TO_PEDMAS_2_NUM_FACTOR_AND_GO_TOKEN(R"(([\d.]*)([LWDAVCR]))");
+const	std::regex	REGEX_SHN_TO_PEDMAS_3_AT_OPERATOR(R"((@)([\d.]+))");
+const	std::regex	REGEX_SHN_TO_PEDMAS_4_MISSING_NUMERIC_FACTOR(R"(\(\*)");
+const	std::regex	REGEX_SHN_TO_PEDMAS_5_IMPLICIT_ADD_OPERATORS(R"((\))(\())");
+const	std::regex	REGEX_SPATIAL_QTY_SIMPLIFY(R"(\(.*\))");
 
 // set the mapped relations for GrunObject preoprties to SpatialExponentValues in here. 
 // if you add additional properties to GrunObject, you need to add entries for them in here.
@@ -225,10 +233,7 @@ bool GrunObject::addGrunItem(std::string name, std::string relationship, std::st
 {
 	// zero check
 	GrunItem newItem(name, relationship, quantityFormula, units, primaryLabourFormula);
-	if (interpretGrunItemSpatialValues(newItem))
-	{
-
-	}
+	interpretGrunItemSpatialValues(newItem);
 	calculateGrunItemData(newItem);
 	m_items.emplace_back(newItem);
 	return true;
@@ -362,7 +367,7 @@ std::string GrunObject::getGrunItemListInfoAsString(const std::string dateFormat
 					 std::format("{:<17} ","Rel: " + item._relationship.substr(0,12)) + 
 					 std::format("{:<13} ","SA: " + spatialExponentValueToString(item._spatialAnchor).substr(0,9)) + 
 					 std::format("{:<9}","Spa.Qty: ") + 
-					 std::format("{:>7.2f} ",item._relationQuantity) +
+					 std::format("{:>7.2f} ",item._spatialQuantity) +
 					 std::format("{:<10}","Item.Qty: ") + 
 					 std::format("{:>7.2f} ",item._itemQuantity) +
 					 std::format("{:<8} ",item._itemQuantityUnits.substr(0,8)) +
@@ -453,7 +458,6 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
     double depth_val = (m_areaType == AreaType::Vertical) ? m_y : m_z;
 
     // Initialize state
-    item._relationQuantity = 0.0;
     item._itemQuantity = 0.0;
     item._itemPrimaryLabour = 0.0;
 
@@ -474,17 +478,16 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
 	// dev-note: _isCompoundRelationship will be false if the GrunItem has an _itemQuantityFormula set.
 	// 			 if _itemQuantityFormula is empty, _isCompoundRelationship will be decided based on comparing _spatialUnit and _itemQuantitySpatialUnit
 	if (item._itemQuantityFormula.empty())
-		item._isCompoundRelationship = (static_cast<int>(item._spatialUnit) > static_cast<int>(item._itemQuantitySpatialUnit));
+		item._isCompoundRelationship = (static_cast<int>(item._spatialUnit) < static_cast<int>(item._itemQuantitySpatialUnit));
 	else
 		item._isCompoundRelationship = false;
 	
 	std::string mathBaseExpr		= substituteRelationshipTokens(item._baseExpression);			// mathBaseExpr is the GrunItem's _baseExpression with the GrunObject Tokens converted to their numeric values
-	item._relationQuantity			= evaluateArithmetic(mathBaseExpr);								// _relationQuantity is calculated from the base expression (no explicit, compounding, terms are used for this)
 
 	// check if the GrunItem's baseExpression and interprettedRelationship are the same. if they are just give +_itemQuantity the same value as relationQuantity as there's no more math in the relationship to evaluate
 	if (item._baseExpression == item._interprettedRelationship)
 	{
-		item._itemQuantity = item._relationQuantity;
+		item._itemQuantity = item._spatialQuantity;
 	}
 	else
 	{
@@ -495,8 +498,8 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
 	
 	if (!item._isCompoundRelationship)
 	{
-		// basic relationships need the GrunItem's _itemQuantityFormula applied to the _relationQuantity (unless it's a direct value calculation - either way this doesn't matter)
-		item._itemQuantity			= applyFormula(item._relationQuantity, item._itemQuantityFormula, item._itemName, "Item Qty");
+		// basic relationships need the GrunItem's _itemQuantityFormula applied to the _spatialQuantity (unless it's a direct value calculation - either way this doesn't matter)
+		item._itemQuantity			= applyFormula(item._spatialQuantity, item._itemQuantityFormula, item._itemName, "Item Qty");
 	}
 
 	// calculate item qty, primary labour and update LKGW calculated value
@@ -534,7 +537,7 @@ int GrunObject::calculateGrunObjectTotals()
 				case 1:
 					// Case 1 (Spatial Totals): Aggregate by the relationship unit (e.g., 'A', '2W', 'V')
 					aggregationKey	= item._relationship;
-					itemQuantity	= item._relationQuantity;
+					itemQuantity	= item._spatialQuantity;
 					itemUnit		= item._relationship; // Use relationship string as the unit/identifier
 					break;
 
@@ -754,8 +757,15 @@ std::string GrunObject::substituteRelationshipTokens(const std::string& relation
     // 1. Define the substitution values (ensure they are in string format for replacement)
     // We prioritize using the explicit object dimension members for L, W, D.
     std::string L_val = std::to_string(m_x);
-    std::string W_val = std::to_string(m_y); // Use m_y for W
-    std::string D_val = std::to_string(m_z); // Use m_z for D
+	std::string W_val = std::to_string(m_y); // Use m_y for W
+	std::string D_val = std::to_string(m_z); // Use m_z for D
+	if (m_areaType == AreaType::Vertical)
+	{
+		// the GrunObject is a "vertical" area (like a wall)
+		W_val = std::to_string(m_z); // Use m_z for W
+		D_val = std::to_string(m_y); // Use m_y for D
+	}
+	
     std::string A_val = std::to_string(m_area);
     std::string V_val = std::to_string(m_volume);
     std::string P_val = std::to_string(2.0 * (m_x + m_y)); // Assuming a rectangular perimeter for 'P'
@@ -966,18 +976,52 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 	
 	item._spatialUnit = static_cast<SpatialExponentValue>(spatialUnit);
 
+	// to calculate the Spatial Quantity we must evaluate the GrunItem's base expression
+	item._spatialQuantityFormula = convertSpatialQuantitySHNToPEDMAS(item._baseExpression);
+	item._spatialQuantityFormula = substituteRelationshipTokens(item._spatialQuantityFormula);
+	item._spatialQuantity = evaluateArithmetic(item._spatialQuantityFormula);
+
 	// debug output
 	// std::println("Debug Output in: {}",current.function_name());
-	std::print("item.rel: {:>15} ",item._relationship);
-	std::print("baseExpr: {:>10} ",item._baseExpression);
-	std::print("bEForSV: {:>5} ",item._baseExpressionIntprForSU);
-	std::print("bEIntNum: {:>5} ",item._baseExpressionIntprNumeric);
-	std::print("S.A.: {:>1} ",spatialExponentValueToString(item._spatialAnchor));
-	std::print("numericExprRes: {:>6} ",numericExprResult);
-	std::println("S.U.: {:>1} ",spatialExponentValueToString(item._spatialUnit));
+	std::print("item.rel: {:>15} ",item._relationship.substr(0,25));
+	std::print("baseExpr: {:>10} ",item._baseExpression.substr(0,20));
+	std::print("bEForSV: {:>5} ",item._baseExpressionIntprForSU.substr(0,14));
+	std::print("bEIntNum: {:>5} ",item._baseExpressionIntprNumeric.substr(0,15));
+	std::print("S.A.: {:>7} ",spatialExponentValueToString(item._spatialAnchor));
+	std::print("numericExprRes: {:>6} ",numericExprResult.substr(0,22));
+	std::print("S.U.: {:>7} ",spatialExponentValueToString(item._spatialUnit));
+	std::println("SQF: {:>25} ",item._spatialQuantityFormula.substr(0,30));
 
 	// return true to indicate interpretation was a success
 	return true;
+}
+
+std::string GrunObject::convertSpatialQuantitySHNToPEDMAS(const std::string &shn)
+{
+	// zero-check
+	if (shn.empty()) return std::string();
+
+	// use regexes to process the shn string in our custom order of precedence to build the formula PEDMAS how we need it
+	// dev-note: regex patterns used here are defined in constants at hte top of this file.
+
+	std::string numericForm = shn;
+	std::erase_if(numericForm, [](char c) { return std::isspace(static_cast<unsigned char>(c)); });			// strip whitespace
+	numericForm	= std::regex_replace(numericForm, REGEX_SHN_TO_PEDMAS_2_NUM_FACTOR_AND_GO_TOKEN, "($1*$2)");
+	numericForm = std::regex_replace(numericForm, REGEX_SHN_TO_PEDMAS_4_MISSING_NUMERIC_FACTOR, "(1*");
+	numericForm = std::regex_replace(numericForm, REGEX_SHN_TO_PEDMAS_5_IMPLICIT_ADD_OPERATORS, ")+(");
+
+	std::smatch match;
+	if (!numericForm.contains('+'))
+	{
+		// if the numericForm doesn't contain a + operator, the Spatial Value will equal whatever the solitary GrunObject Token represents numerically
+		std::regex_search(numericForm, match, REGEX_GO_ALL_TOKENS);
+		numericForm = match[0].str();
+	}
+	else if (std::regex_search(numericForm, match, REGEX_SPATIAL_QTY_SIMPLIFY))
+	{
+		numericForm = match[0].str();
+	}
+	return numericForm;
 }
 
 double GrunObject::evaluateArithmetic(std::string expression)
@@ -994,7 +1038,7 @@ double GrunObject::evaluateArithmetic(std::string expression)
 		if (closeBracket == std::string::npos) 
 			break;
 		
-		// extract the inside expression, evaluate it, and swap it back int othe string
+		// extract the inside expression, evaluate it, and swap it back into the string
 		std::string inside = expression.substr(openBracket + 1, closeBracket - openBracket - 1);
 		expression.replace(openBracket, closeBracket - openBracket + 1, std::to_string(evaluateArithmetic(inside)));
 		openBracket = expression.find_last_of('(');

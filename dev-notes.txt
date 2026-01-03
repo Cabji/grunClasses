@@ -1,35 +1,7 @@
 this file is just a text file where i can save notes while i'm developing the project.
 
-Capturing the significant data from a relationship's Base Expression
- /1. extract the Base Expression from the relationship (anything that occurs prior to the first @ character, if any)
- /2. regex match any GrunObject Token and * or / operator found in that base expression string [LWDAVC\/*]
- /3. remove the first result and/or last result from the matches vector if it is a / or * operator (all other operators in the matches are explicit and significant to the Spatial Unit result if they are surrounded by tokens)
- /4. convert * operators to +
- /6. convert all GrunObject Tokens to their SEV as integers (call this the numeric expression)
- /7. find the token with the highest Spatial Exponent Value (SEV) in the result: call this the "Spatial Anchor"
- /8. evaluate any arithmetic as required in the numeric expression to remove all + operators
- /9. find the largest single integer in the resulting numeric expression
+Now we have the Spatial Values (Spatial Unit, Spatial Quantity) calculated, we need to re-do the Item Quantity calculation.
 
-New task: Evaluating the base expression to get the GrunItem's Spatial Quantity.
- 1. get the baseExpr (with all numeric factors, operators and Tokens)
- 2. convert the Tokens in the base expression to their value from the GrunObject, but also:
-	2a. insert implicit * operators between GrunObject Token and its numeric factor (if applicable)
-	2b. enclose the affected factors in parentheses as these conversions happen to maintain arithmetical integrity (PEDMAS)
-		note: you already have the code in another function (possibly evaluateArithmetic() ?)
-3. insert implicit + operators between base expression terms and enclose with parentheses where applicable
-4. evaluate the converted numeric base expression with PEDMAS arithmetic
-
- 10. compare the SEV result with the Spatial Anchor
-	10a. why are we comparing these 2 values?
-		we might be comparing them because we may need to know if the SV travelled up or down, depending on the factors in the base expression. i don't know why yet.
-
- the Spatial Anchor is the spatial exponent value that the Base Expression is interpretted to have BEFORE the Base Expression is evaluated for Spatial Unit/Value purposes
- the Spatial Unit is the spatial exponent value that the Base Expression  is interpretted to have AFTER the Base Expression is evaluated for Spatial Unit/Value purposes
- the reason we want the spatial exponent values both before and after interpretation is because the user can use compound relationships in the Base Expression which will alter the spatial exponent value, and we may need to detect if they are doing this
-
-Spatial Quantity
- 1. How do we calculate the Spatial Quantity? (SQ)
-	we have available: 
-		a. Item relationship
-		b. Base Expression
-		c. 
+The _itemQuantity will not neccessarily always be calculated from the item's Spatial Quantity value. 
+Therefore, it's probably best to just start fresh with the item's relationship string again in a function dedicated to calculating the 
+item's _itemQuantity.

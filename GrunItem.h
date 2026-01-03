@@ -44,9 +44,9 @@ class GrunItem
 	std::string								_baseExpressionIntprNumeric	= "";							// the base expression after interpretation with numeric values in place of GrunObject Tokens and + in place of * operators
 	SpatialExponentValue					_spatialAnchor				= SpatialExponentValue::None;	// the 'Spatial Anchor' value
 	SpatialExponentValue					_spatialUnit				= SpatialExponentValue::None;	// the 'Spatial Unit' value (after interpretting and considering the entire Base Expression)
+	std::string								_spatialQuantityFormula		= "";							// the formula that is derived by converting the Base Expression's SHN into numeric math formula
 	double									_spatialQuantity			= 0.0;							// the 'Spatial Quantity' value
 	std::string								_interprettedRelationship	= "";							// created by GrunObject::interpretRelationship()
-	double									_relationQuantity			= 0.0;
 	SpatialExponentValue					_itemQuantitySpatialUnit	= SpatialExponentValue::None;	// _itemQuantitySpatialUnit is the SpatialExponentValue (None,Linear,Area,Volume) that is assigned to the GrunItem based on the GrunItem's _itemQuantityUnits value *IF* the _itemQuantityUnits are already of a spatial unit type (dev-note: this mostly only works if the _itemQuantityUnits are 'm', 'm2', 'm3' and these values are hard coded in GrunObject::mapUnitToSpatialExponent() which will need to be more flexible for locales in the future)
 	std::string 							_itemQuantityFormula		= "";
 	double									_itemQuantity				= 0.0;
