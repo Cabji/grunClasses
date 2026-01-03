@@ -942,7 +942,7 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 		if (c == '*')
 			c = '+';
 		else
-			c = static_cast<char>(static_cast<int>(getTokenExponent(c)) + 48);	// dev-note: + 48 to correctly cast the returned int value BACK to a char
+			c = static_cast<char>(asInt(getTokenExponent(c)) + 48);	// dev-note: + 48 to correctly cast the returned int value BACK to a char
 	}
 
 	item._baseExpressionIntprNumeric = numericExpr;
