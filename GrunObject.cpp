@@ -750,6 +750,11 @@ SpatialExponentValue GrunObject::interpretRelationship(GrunItem &item)
 	return totalRelationshipSV;
 }
 
+/**
+ * @brief This function will replace Grun Object Token characters (LWDAV etc) with the appropriate numeric value from the owning Grun Object's property
+ * @param (std::string) - the SHN relationship string to parse
+ * @return (std::string) - returns the parsed string with tokens replaced with numbers
+ */
 std::string GrunObject::substituteRelationshipTokens(const std::string& relationship) const
 {
     std::string substituted_relationship = relationship;
@@ -883,6 +888,11 @@ SpatialExponentValue GrunObject::calculateRelationshipSpatialExponent(const std:
     return static_cast<SpatialExponentValue>(maxExponent);
 }
 
+/**
+ * @brief This function is responsible for all operations involved in determining all values associated with a GrunItem's Spatial Values. It will look at the item's _relationship value and determine all necessary Spatial related values and GrunItem member values when this function is called.
+ * @param (GrunItem) - the Grun Item instance to interpret/calculate the Spatial Values for
+ * @return (bool) - false if unsuccessful (this will occur if the Grun Item's relationship string is faulty), true if successful.
+ */
 bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 {
 	// zero-check and return out false to indicate interpretation was failure
@@ -996,6 +1006,11 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 	return true;
 }
 
+/**
+ * @brief Parses a GrunItem's SHN to (hopefully) have correctly interpretted operators and parentheses for PEDMAS arithmetic evaluation
+ * @param (std::string) - the shorthand notation as a string to parse and convert
+ * @return (std::string) - the converted result string
+ */
 std::string GrunObject::convertSpatialQuantitySHNToPEDMAS(const std::string &shn)
 {
 	// zero-check
@@ -1024,6 +1039,11 @@ std::string GrunObject::convertSpatialQuantitySHNToPEDMAS(const std::string &shn
 	return numericForm;
 }
 
+/**
+ * @brief Evaluates an expression string into a numeric double value, obeying PEDMAS order of precedence
+ * @param expression - (std::string) the expression to evaluate
+ * @return (double) - the evaluated result of expression
+ * */
 double GrunObject::evaluateArithmetic(std::string expression)
 {
 	if (expression.empty()) return 0.0;
@@ -1079,7 +1099,11 @@ double GrunObject::evaluateArithmetic(std::string expression)
 	}
 }
 
-// returns a SpatialExponentValue (None,Linear,Area,Volume) that corressponds to the token given to the function
+/**
+ * @brief takes a string (assumed the string represents a GrunObject Token) and returns the SpatialExponentValue of the Token
+ * @param (std::string_view / string) - the token (as a string type)
+ * @return (SpatialExponentValue) - the SpatialExponentValue that the token was found to match best to, if any (returns 'None' if token is not known)
+ */
 SpatialExponentValue GrunObject::getTokenExponent(std::string_view token)
 {
 
@@ -1094,6 +1118,11 @@ SpatialExponentValue GrunObject::getTokenExponent(std::string_view token)
     return SpatialExponentValue::None;
 }
 
+/**
+ * @brief overloaded function to accept token as a char type
+ * @param (char) - the token (as a char type)
+ * @return (SpatialExponentValue) - the SpatialExponentValue that the token was found to match best to, if any (returns 'None' if token is not known)* 
+ */
 // overload to use char argument
 SpatialExponentValue GrunObject::getTokenExponent(char token)
 {
