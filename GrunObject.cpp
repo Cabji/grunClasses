@@ -27,7 +27,7 @@ const	std::regex	REGEX_GO_LINEAL_TOKENS(R"([LWDCR]+)");
 const	std::regex	REGEX_GO_AREA_TOKENS(R"([A]+)");
 const	std::regex	REGEX_GO_VOLUME_TOKENS(R"([V]+)");
 const	std::regex	REGEX_SHN_TO_PEDMAS_0_WRAP_ALL_IN_PARENTHESES(R"((.+))");
-const	std::regex	REGEX_SHN_TO_PEDMAS_1_EXPLICIT_OPERTOR(R"(([+\-*\/]))");
+const	std::regex	REGEX_SHN_TO_PEDMAS_1_EXPLICIT_OPERATOR(R"(([+\-*\/]))");
 const	std::regex	REGEX_SHN_TO_PEDMAS_2_NUM_FACTOR_AND_GO_TOKEN(R"(([\d.]*)([LWDAVCR]))");
 const	std::regex	REGEX_SHN_TO_PEDMAS_3_AT_OPERATOR(R"((@)([\d.]+))");
 const	std::regex	REGEX_SHN_TO_PEDMAS_4_MISSING_NUMERIC_FACTOR(R"(\(\*)");
@@ -234,6 +234,7 @@ bool GrunObject::addGrunItem(std::string name, std::string relationship, std::st
 	// zero check
 	GrunItem newItem(name, relationship, quantityFormula, units, primaryLabourFormula);
 	interpretGrunItemSpatialValues(newItem);
+	interpretGrunItemItemQuantity(newItem);
 	calculateGrunItemData(newItem);
 	m_items.emplace_back(newItem);
 	return true;
@@ -993,14 +994,14 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 
 	// debug output
 	// std::println("Debug Output in: {}",current.function_name());
-	std::print("item.rel: {:>15} ",item._relationship.substr(0,25));
-	std::print("baseExpr: {:>10} ",item._baseExpression.substr(0,20));
-	std::print("bEForSV: {:>5} ",item._baseExpressionIntprForSU.substr(0,14));
-	std::print("bEIntNum: {:>5} ",item._baseExpressionIntprNumeric.substr(0,15));
-	std::print("S.A.: {:>7} ",spatialExponentValueToString(item._spatialAnchor));
-	std::print("numericExprRes: {:>6} ",numericExprResult.substr(0,22));
-	std::print("S.U.: {:>7} ",spatialExponentValueToString(item._spatialUnit));
-	std::println("SQF: {:>25} ",item._spatialQuantityFormula.substr(0,30));
+	// std::print("item.rel: {:>15} ",item._relationship.substr(0,25));
+	// std::print("baseExpr: {:>10} ",item._baseExpression.substr(0,20));
+	// std::print("bEForSV: {:>5} ",item._baseExpressionIntprForSU.substr(0,14));
+	// std::print("bEIntNum: {:>5} ",item._baseExpressionIntprNumeric.substr(0,15));
+	// std::print("S.A.: {:>7} ",spatialExponentValueToString(item._spatialAnchor));
+	// std::print("numericExprRes: {:>6} ",numericExprResult.substr(0,22));
+	// std::print("S.U.: {:>7} ",spatialExponentValueToString(item._spatialUnit));
+	// std::println("SQF: {:>25} ",item._spatialQuantityFormula.substr(0,30));
 
 	// return true to indicate interpretation was a success
 	return true;
@@ -1037,6 +1038,30 @@ std::string GrunObject::convertSpatialQuantitySHNToPEDMAS(const std::string &shn
 		numericForm = match[0].str();
 	}
 	return numericForm;
+}
+
+bool GrunObject::interpretGrunItemItemQuantity(GrunItem &item)
+{
+	// zero-check
+	if (item._relationship.empty()) return false;
+
+	std::string	parsedRel	= item._relationship;
+	std::erase_if(parsedRel, [](char c) { return std::isspace(static_cast<unsigned char>(c)); });			// strip whitespace
+	parsedRel	= std::regex_replace(parsedRel, REGEX_SHN_TO_PEDMAS_0_WRAP_ALL_IN_PARENTHESES, "($1)");
+	parsedRel	= std::regex_replace(parsedRel, REGEX_SHN_TO_PEDMAS_1_EXPLICIT_OPERATOR, ")$1(");
+	parsedRel	= std::regex_replace(parsedRel, REGEX_SHN_TO_PEDMAS_2_NUM_FACTOR_AND_GO_TOKEN, "($1*$2)");
+	parsedRel	= std::regex_replace(parsedRel, REGEX_SHN_TO_PEDMAS_3_AT_OPERATOR, "(/$2+1)");
+	parsedRel	= std::regex_replace(parsedRel, REGEX_SHN_TO_PEDMAS_4_MISSING_NUMERIC_FACTOR, "(1*");
+	parsedRel	= std::regex_replace(parsedRel, REGEX_SHN_TO_PEDMAS_5_IMPLICIT_ADD_OPERATORS, ")+(");
+
+	std::println("parsedRel: {}",parsedRel);
+// const	std::regex	REGEX_SHN_TO_PEDMAS_0_WRAP_ALL_IN_PARENTHESES(R"((.+))");
+// const	std::regex	REGEX_SHN_TO_PEDMAS_1_EXPLICIT_OPERATOR(R"(([+\-*\/]))");
+// const	std::regex	REGEX_SHN_TO_PEDMAS_2_NUM_FACTOR_AND_GO_TOKEN(R"(([\d.]*)([LWDAVCR]))");
+// const	std::regex	REGEX_SHN_TO_PEDMAS_3_AT_OPERATOR(R"((@)([\d.]+))");
+// const	std::regex	REGEX_SHN_TO_PEDMAS_4_MISSING_NUMERIC_FACTOR(R"(\(\*)");
+// const	std::regex	REGEX_SHN_TO_PEDMAS_5_IMPLICIT_ADD_OPERATORS(R"((\))(\())");
+	return false;
 }
 
 /**

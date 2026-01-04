@@ -235,6 +235,7 @@ class GrunObject
 
 	bool					interpretGrunItemSpatialValues(GrunItem &item);
 	std::string				convertSpatialQuantitySHNToPEDMAS(const std::string &shn);
+	bool					interpretGrunItemItemQuantity(GrunItem &item);
 	double 					evaluateArithmetic(std::string expression);
 	SpatialExponentValue	getTokenExponent(std::string_view token);
 	SpatialExponentValue	getTokenExponent(char token);

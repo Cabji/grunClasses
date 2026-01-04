@@ -5,3 +5,7 @@ Now we have the Spatial Values (Spatial Unit, Spatial Quantity) calculated, we n
 The _itemQuantity will not neccessarily always be calculated from the item's Spatial Quantity value. 
 Therefore, it's probably best to just start fresh with the item's relationship string again in a function dedicated to calculating the 
 item's _itemQuantity.
+
+need to fix: interpretGrunItemItemQuantity() is parsing rel string inccorect - implicit + op is being added between )(
+	 but this is creating a bug where the @ operator is used.
+)
