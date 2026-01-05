@@ -236,7 +236,7 @@ bool GrunObject::addGrunItem(std::string name, std::string relationship, std::st
 	GrunItem newItem(name, relationship, quantityFormula, units, primaryLabourFormula);
 	interpretGrunItemSpatialValues(newItem);
 	interpretGrunItemItemQuantity(newItem);
-	calculateGrunItemData(newItem);
+	//calculateGrunItemData(newItem);
 	m_items.emplace_back(newItem);
 	return true;
 }
@@ -1056,13 +1056,17 @@ bool GrunObject::interpretGrunItemItemQuantity(GrunItem &item)
 	parsedRel	= std::regex_replace(parsedRel, REGEX_SHN_TO_PEDMAS_5_IMPLICIT_ADD_OPERATORS, ")+(");
 	parsedRel	= std::regex_replace(parsedRel, REGEX_SHN_TO_PEDMAS_6_PRIORITIZE_COMBINING_TERMS, "($1)");
 
+	item._interprettedRelationship = substituteRelationshipTokens(parsedRel);
+	double	itemQty	= evaluateArithmetic(item._interprettedRelationship);
+	// itemQty at this point is only preliminary. check if the item has a value for its _itemQuantityFormula and apply it if it does
+	if (!item._itemQuantityFormula.empty())
+	{
+		std::string	tempForm	= std::to_string(itemQty) + item._itemQuantityFormula;
+		itemQty					= evaluateArithmetic(tempForm);
+	}
+	
+	item._itemQuantity = itemQty;
 	std::println("parsedRel: {}",parsedRel);
-// const	std::regex	REGEX_SHN_TO_PEDMAS_0_WRAP_ALL_IN_PARENTHESES(R"((.+))");
-// const	std::regex	REGEX_SHN_TO_PEDMAS_1_EXPLICIT_COMBINE_OPERATOR(R"(([+\-*\/]))");
-// const	std::regex	REGEX_SHN_TO_PEDMAS_2_NUM_FACTOR_AND_GO_TOKEN(R"(([\d.]*)([LWDAVCR]))");
-// const	std::regex	REGEX_SHN_TO_PEDMAS_3_AT_OPERATOR(R"((@)([\d.]+))");
-// const	std::regex	REGEX_SHN_TO_PEDMAS_4_MISSING_NUMERIC_FACTOR(R"(\(\*)");
-// const	std::regex	REGEX_SHN_TO_PEDMAS_5_IMPLICIT_ADD_OPERATORS(R"((\))(\())");
 	return false;
 }
 
