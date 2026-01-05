@@ -27,11 +27,12 @@ const	std::regex	REGEX_GO_LINEAL_TOKENS(R"([LWDCR]+)");
 const	std::regex	REGEX_GO_AREA_TOKENS(R"([A]+)");
 const	std::regex	REGEX_GO_VOLUME_TOKENS(R"([V]+)");
 const	std::regex	REGEX_SHN_TO_PEDMAS_0_WRAP_ALL_IN_PARENTHESES(R"((.+))");
-const	std::regex	REGEX_SHN_TO_PEDMAS_1_EXPLICIT_OPERATOR(R"(([+\-*\/]))");
+const	std::regex	REGEX_SHN_TO_PEDMAS_1_EXPLICIT_COMBINE_OPERATOR(R"(([+\-]))");
 const	std::regex	REGEX_SHN_TO_PEDMAS_2_NUM_FACTOR_AND_GO_TOKEN(R"(([\d.]*)([LWDAVCR]))");
 const	std::regex	REGEX_SHN_TO_PEDMAS_3_AT_OPERATOR(R"((@)([\d.]+))");
 const	std::regex	REGEX_SHN_TO_PEDMAS_4_MISSING_NUMERIC_FACTOR(R"(\(\*)");
 const	std::regex	REGEX_SHN_TO_PEDMAS_5_IMPLICIT_ADD_OPERATORS(R"((\))(\())");
+const	std::regex	REGEX_SHN_TO_PEDMAS_6_PRIORITIZE_COMBINING_TERMS(R"((\([^)]*\)(?:\+\([^)]*\))+))");
 const	std::regex	REGEX_SPATIAL_QTY_SIMPLIFY(R"(\(.*\))");
 
 // set the mapped relations for GrunObject preoprties to SpatialExponentValues in here. 
@@ -1047,16 +1048,17 @@ bool GrunObject::interpretGrunItemItemQuantity(GrunItem &item)
 
 	std::string	parsedRel	= item._relationship;
 	std::erase_if(parsedRel, [](char c) { return std::isspace(static_cast<unsigned char>(c)); });			// strip whitespace
-	parsedRel	= std::regex_replace(parsedRel, REGEX_SHN_TO_PEDMAS_0_WRAP_ALL_IN_PARENTHESES, "($1)");
-	parsedRel	= std::regex_replace(parsedRel, REGEX_SHN_TO_PEDMAS_1_EXPLICIT_OPERATOR, ")$1(");
+	//parsedRel	= std::regex_replace(parsedRel, REGEX_SHN_TO_PEDMAS_0_WRAP_ALL_IN_PARENTHESES, "($1)");
+	parsedRel	= std::regex_replace(parsedRel, REGEX_SHN_TO_PEDMAS_1_EXPLICIT_COMBINE_OPERATOR, ")$1(");
 	parsedRel	= std::regex_replace(parsedRel, REGEX_SHN_TO_PEDMAS_2_NUM_FACTOR_AND_GO_TOKEN, "($1*$2)");
-	parsedRel	= std::regex_replace(parsedRel, REGEX_SHN_TO_PEDMAS_3_AT_OPERATOR, "(/$2+1)");
+	parsedRel	= std::regex_replace(parsedRel, REGEX_SHN_TO_PEDMAS_3_AT_OPERATOR, "/$2+1");
 	parsedRel	= std::regex_replace(parsedRel, REGEX_SHN_TO_PEDMAS_4_MISSING_NUMERIC_FACTOR, "(1*");
 	parsedRel	= std::regex_replace(parsedRel, REGEX_SHN_TO_PEDMAS_5_IMPLICIT_ADD_OPERATORS, ")+(");
+	parsedRel	= std::regex_replace(parsedRel, REGEX_SHN_TO_PEDMAS_6_PRIORITIZE_COMBINING_TERMS, "($1)");
 
 	std::println("parsedRel: {}",parsedRel);
 // const	std::regex	REGEX_SHN_TO_PEDMAS_0_WRAP_ALL_IN_PARENTHESES(R"((.+))");
-// const	std::regex	REGEX_SHN_TO_PEDMAS_1_EXPLICIT_OPERATOR(R"(([+\-*\/]))");
+// const	std::regex	REGEX_SHN_TO_PEDMAS_1_EXPLICIT_COMBINE_OPERATOR(R"(([+\-*\/]))");
 // const	std::regex	REGEX_SHN_TO_PEDMAS_2_NUM_FACTOR_AND_GO_TOKEN(R"(([\d.]*)([LWDAVCR]))");
 // const	std::regex	REGEX_SHN_TO_PEDMAS_3_AT_OPERATOR(R"((@)([\d.]+))");
 // const	std::regex	REGEX_SHN_TO_PEDMAS_4_MISSING_NUMERIC_FACTOR(R"(\(\*)");
