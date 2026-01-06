@@ -1,11 +1,11 @@
 this file is just a text file where i can save notes while i'm developing the project.
 
-i think we have got the relationship interpretation to PEDMAS arithmetic working correctly.
+we are now just calculating and setting the item's member values based on the item _itemQuantity
 
-next is 
+primary labour (if there's a _primaryLabourFormula)
+item qty rounding
+waste
+itemized profit
+etc. (just work your way through the item properties and find the best ways/places to calculate them)
 
-switch out the GrunObject Token Letters for their numeric values
-evaluate the numeric arithmetic
-if the item has an _itemQuantityFormula set, 
-	apply the _itemQuantityFormula to the arithmetic result
-set the result to the item's _itemQuantity member.
+probably making a new function that does all of them would be the way to go.

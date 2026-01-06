@@ -229,18 +229,19 @@ class GrunObject
      */
     static const	std::unordered_map<std::string, SpatialExponentValue>	propertyDimensions;
 
-	double					applyFormula(double lhs, const std::string &formula, const std::string &itemName, const std::string &type);
-	bool					calculateGrunItemData(GrunItem &item);
+	double					applyFormula(double lhs, const std::string &formula);
 	SpatialExponentValue	calculateRelationshipSpatialExponent(const std::string& relationship) const;	// class method that determines Spatial Value an item's relationship value is creating
 
 	bool					interpretGrunItemSpatialValues(GrunItem &item);
 	std::string				convertSpatialQuantitySHNToPEDMAS(const std::string &shn);
 	bool					interpretGrunItemItemQuantity(GrunItem &item);
+	bool					calculateGrunItemData(GrunItem &item);
 	double 					evaluateArithmetic(std::string expression);
 	SpatialExponentValue	getTokenExponent(std::string_view token);
 	SpatialExponentValue	getTokenExponent(char token);
 	std::string 			substituteRelationshipTokens(const std::string& relationship) const;
 	SpatialExponentValue	mapUnitToSpatialExponent(const std::string& unit) const;
+
 	std::string				injectImplicitOperators(std::string &segment);
 	SpatialExponentValue	interpretRelationship(GrunItem &item);
 };

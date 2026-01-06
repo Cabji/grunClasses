@@ -236,7 +236,7 @@ bool GrunObject::addGrunItem(std::string name, std::string relationship, std::st
 	GrunItem newItem(name, relationship, quantityFormula, units, primaryLabourFormula);
 	interpretGrunItemSpatialValues(newItem);
 	interpretGrunItemItemQuantity(newItem);
-	//calculateGrunItemData(newItem);
+	calculateGrunItemData(newItem);
 	m_items.emplace_back(newItem);
 	return true;
 }
@@ -431,7 +431,10 @@ std::string GrunObject::getGrunObjectTotalsInfoAsString() const
 	return ss.str();
 }
 
-double GrunObject::applyFormula(double lhs, const std::string &formula, const std::string &itemName, const std::string &type)
+/**
+ * @brief combines a value (lhs) with an additional math formula (formula)
+ */
+double GrunObject::applyFormula(double lhs, const std::string &formula)
 {
 	if (formula.empty()) return lhs;
 
@@ -455,57 +458,11 @@ double GrunObject::applyFormula(double lhs, const std::string &formula, const st
 
 bool GrunObject::calculateGrunItemData(GrunItem &item)
 {
-    // Define Width and Depth based on AreaType - these may no be needed
-    double width_val = (m_areaType == AreaType::Vertical) ? m_z : m_y;
-    double depth_val = (m_areaType == AreaType::Vertical) ? m_y : m_z;
+	// when this function runs, we should already have the GrunItem's spatial values and item quantity
+	// calculate numerous GrunItem attributes from the existing values
 
-    // Initialize state
-    item._itemQuantity = 0.0;
-    item._itemPrimaryLabour = 0.0;
-
-	// zero check - abort if invalid tokens are found in the _raw_ relationship string
-	std::regex invalid_relationship_char_pattern("[^0-9.LWDAVC\\+\\-\\@\\*\\/\\s]"); 
-    if (std::regex_search(item._relationship, invalid_relationship_char_pattern))
-    {
-        std::println("dev-output: GrunItem => {} has an INVALID Relationship String: '{}'. Contains unsupported characters. Quantity set to 0.", 
-                     item._itemName, item._relationship);
-        return false;
-    }
-
-	// map the GrunItem's QuantitySpatialUnit based on the _itemQuantityUnits value
-	item._itemQuantitySpatialUnit	= mapUnitToSpatialExponent(item._itemQuantityUnits);
-	// interpret the GrunItem's relationship string
-	item._spatialUnit		= interpretRelationship(item);
-	// Decide the GrunItem's Compound Relationship status (based on if it has a Quantity Formula or not)
-	// dev-note: _isCompoundRelationship will be false if the GrunItem has an _itemQuantityFormula set.
-	// 			 if _itemQuantityFormula is empty, _isCompoundRelationship will be decided based on comparing _spatialUnit and _itemQuantitySpatialUnit
-	if (item._itemQuantityFormula.empty())
-		item._isCompoundRelationship = (static_cast<int>(item._spatialUnit) < static_cast<int>(item._itemQuantitySpatialUnit));
-	else
-		item._isCompoundRelationship = false;
-	
-	std::string mathBaseExpr		= substituteRelationshipTokens(item._baseExpression);			// mathBaseExpr is the GrunItem's _baseExpression with the GrunObject Tokens converted to their numeric values
-
-	// check if the GrunItem's baseExpression and interprettedRelationship are the same. if they are just give +_itemQuantity the same value as relationQuantity as there's no more math in the relationship to evaluate
-	if (item._baseExpression == item._interprettedRelationship)
-	{
-		item._itemQuantity = item._spatialQuantity;
-	}
-	else
-	{
-		// otheriwse, evaluate the full interprettedRelationship (which includes the 'modifier' expression on the RHS)
-		std::string mathFullExpr		= substituteRelationshipTokens(item._interprettedRelationship);
-		item._itemQuantity 				= evaluateArithmetic(mathFullExpr);
-	}
-	
-	if (!item._isCompoundRelationship)
-	{
-		// basic relationships need the GrunItem's _itemQuantityFormula applied to the _spatialQuantity (unless it's a direct value calculation - either way this doesn't matter)
-		item._itemQuantity			= applyFormula(item._spatialQuantity, item._itemQuantityFormula, item._itemName, "Item Qty");
-	}
-
-	// calculate item qty, primary labour and update LKGW calculated value
-	item._itemPrimaryLabour			= applyFormula(item._itemQuantity, item._itemPrimaryLabourFormula, item._itemName, "Primary Labour");
+	// zero-check: even if itemQuantity is 0, we still need to set everything else to 0.
+	item._itemPrimaryLabour			= applyFormula(item._itemQuantity,item._itemPrimaryLabourFormula);
 	item._itemLKGWCalculated		= std::chrono::system_clock::now();
 	return true;
 }
