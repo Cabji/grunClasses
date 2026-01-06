@@ -2,8 +2,8 @@ this file is just a text file where i can save notes while i'm developing the pr
 
 we are now just calculating and setting the item's member values based on the item _itemQuantity
 
-primary labour (if there's a _primaryLabourFormula)
-item qty rounding
+* primary labour (if there's a _primaryLabourFormula)
+* item qty rounding
 waste
 itemized profit
 etc. (just work your way through the item properties and find the best ways/places to calculate them)

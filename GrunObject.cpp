@@ -10,6 +10,7 @@
 #include <source_location>
 #include <stdexcept>
 #include <sstream>
+#include "cabjiHelpers.h"
 #include "GrunObject.h"
 
 const double PI = std::acos(-1.0);
@@ -373,6 +374,7 @@ std::string GrunObject::getGrunItemListInfoAsString(const std::string dateFormat
 					 std::format("{:<10}","Item.Qty: ") + 
 					 std::format("{:>7.2f} ",item._itemQuantity) +
 					 std::format("{:<8} ",item._itemQuantityUnits.substr(0,8)) +
+					 std::format("(R:{:>7.2f}) ",item._itemQuantityRounded) +
 					 std::format("{:<10} ","P.Labour:") + 
 					 std::format("{:>6.2f} ", item._itemPrimaryLabour) + 
 					 std::format("{:<6} "," hr(s)") +
@@ -463,6 +465,7 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
 
 	// zero-check: even if itemQuantity is 0, we still need to set everything else to 0.
 	item._itemPrimaryLabour			= applyFormula(item._itemQuantity,item._itemPrimaryLabourFormula);
+	item._itemQuantityRounded		= cabji::roundToStep(item._itemQuantity,item._itemRoundUpFactor);
 	item._itemLKGWCalculated		= std::chrono::system_clock::now();
 	return true;
 }
@@ -1023,7 +1026,7 @@ bool GrunObject::interpretGrunItemItemQuantity(GrunItem &item)
 	}
 	
 	item._itemQuantity = itemQty;
-	std::println("parsedRel: {}",parsedRel);
+	// std::println("parsedRel: {}",parsedRel);
 	return false;
 }
 
