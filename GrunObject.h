@@ -113,6 +113,17 @@ struct GrunObjectTotals
     }
 };
 
+/**
+ * @brief	A struct that holds vetted data about a GrunObject's child items.
+ * @note	This is used by the getter function that sends data bout the object's children out to calling code.
+ */
+struct GrunItemSummary
+{
+	std::string	name;
+	double		quantity;
+	double		cost;
+};
+
 // set the ShapeType from a string - NOTE: we must ensure the string is sanitized to all lowercase if the user inputs this value
 inline ShapeType shapeTypeFromString(const std::string &s)
 {
@@ -230,7 +241,6 @@ class GrunObject
     static const	std::unordered_map<std::string, SpatialExponentValue>	propertyDimensions;
 
 	double					applyFormula(double lhs, const std::string &formula);
-	SpatialExponentValue	calculateRelationshipSpatialExponent(const std::string& relationship) const;	// class method that determines Spatial Value an item's relationship value is creating
 
 	bool					interpretGrunItemSpatialValues(GrunItem &item);
 	std::string				convertSpatialQuantitySHNToPEDMAS(const std::string &shn);
@@ -241,7 +251,4 @@ class GrunObject
 	SpatialExponentValue	getTokenExponent(char token);
 	std::string 			substituteRelationshipTokens(const std::string& relationship) const;
 	SpatialExponentValue	mapUnitToSpatialExponent(const std::string& unit) const;
-
-	std::string				injectImplicitOperators(std::string &segment);
-	SpatialExponentValue	interpretRelationship(GrunItem &item);
 };

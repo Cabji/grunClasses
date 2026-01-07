@@ -1,11 +1,12 @@
 this file is just a text file where i can save notes while i'm developing the project.
 
-we are now just calculating and setting the item's member values based on the item _itemQuantity
+totalling
 
-* primary labour (if there's a _primaryLabourFormula)
-* item qty rounding
-waste
-itemized profit
-etc. (just work your way through the item properties and find the best ways/places to calculate them)
+this is taking a set of data and grouping it by one of the fields/columns in the set and combining each group's total in another field.
 
-probably making a new function that does all of them would be the way to go.
+therefore, we need: 
+	1. a set of data
+	2. the field name/location to total
+	3. the field name/location to group by
+	4. return a new set of data in format: set[group => total]
+
