@@ -235,8 +235,6 @@ bool GrunObject::addGrunItem(std::string name, std::string relationship, std::st
 {
 	// zero check
 	GrunItem newItem(name, relationship, quantityFormula, units, primaryLabourFormula);
-	interpretGrunItemSpatialValues(newItem);
-	interpretGrunItemItemQuantity(newItem);
 	calculateGrunItemData(newItem);
 	m_items.emplace_back(newItem);
 	return true;
@@ -458,12 +456,20 @@ double GrunObject::applyFormula(double lhs, const std::string &formula)
 	return lhs;
 }
 
+/**
+ * @brief Calculates a GrunItem's member values after the item's relationship has been interpretted
+ * @attention You should always call GrunObject::interpretGrunItemSpatialValues(GrunItem) and GrunObject::interpretGrunItemItemQuantity(GrunItem) before calling this function.
+ * @param item (GrunItem) - the GrunItem to calculate the data for
+ * @return true if successful, false if failure occurs
+ */
 bool GrunObject::calculateGrunItemData(GrunItem &item)
 {
-	// when this function runs, we should already have the GrunItem's spatial values and item quantity
-	// calculate numerous GrunItem attributes from the existing values
+	// first interpret the item's relationship to calculate Spatial Values and Item Quantity 
+	interpretGrunItemSpatialValues(item);
+	interpretGrunItemItemQuantity(item);
 
 	// zero-check: even if itemQuantity is 0, we still need to set everything else to 0.
+	// next, calculate all the GrunItem's member values
 	item._itemPrimaryLabour			= applyFormula(item._itemQuantity,item._itemPrimaryLabourFormula);
 	item._itemQuantityRounded		= cabji::roundToStep(item._itemQuantity,item._itemRoundUpFactor);
 	item._itemLKGWCalculated		= std::chrono::system_clock::now();

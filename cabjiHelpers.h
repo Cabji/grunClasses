@@ -9,7 +9,7 @@ namespace cabji
 
 	/**
 	 * @brief rounds a number to the next step
-	 * @attention If step == 0, it will be converted to = 1 so the function will round to the next whole single unit if it is given 0 as the step
+	 * @attention If step == 0, it will be set to = 1 so the function will round to the next whole single unit if it is given 0 as the step
 	 * @param val	(double) - the value to round
 	 * @param step	(double) - the place/value to round to
 	 */
