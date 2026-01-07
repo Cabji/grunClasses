@@ -37,24 +37,24 @@ class GrunItem
 {
 	public:
 	std::string 							_itemName					= "";							// required value on construction
-	std::string 							_relationship				= "";							// required value on construction
-	bool									_isCompoundRelationship		= false;						// _isCompoundRelationship is determined by checking if the GrunItem's _calculatedSpatialUnit is smaller than its _itemQuantitySpatialUnit
+	std::string 							_relationship				= "";							// the relationship will ultimately NOT be required on object creation, only the itemName is
+
+	// interpretted member values (members that are derived when the item's _relationship is interpretted)
+	// the members are listed in a rough locigal order of when they are calculated in the code
 	std::string								_baseExpression				= "";							// _baseExpression is the portion of the GrunItem's relationship string that is interpretted to result in the GrunItem's _calculatedSpatialUnit
 	std::string								_baseExpressionIntprForSU	= "";							// the base expression interpretted for calculating the Spatial Unit
 	std::string								_baseExpressionIntprNumeric	= "";							// the base expression after interpretation with numeric values in place of GrunObject Tokens and + in place of * operators
+	bool									_isCompoundRelationship		= false;						// _isCompoundRelationship is determined by checking if the GrunItem's _calculatedSpatialUnit is smaller than its _itemQuantitySpatialUnit
 	SpatialExponentValue					_spatialAnchor				= SpatialExponentValue::None;	// the 'Spatial Anchor' value
 	SpatialExponentValue					_spatialUnit				= SpatialExponentValue::None;	// the 'Spatial Unit' value (after interpretting and considering the entire Base Expression)
 	std::string								_spatialQuantityFormula		= "";							// the formula that is derived by converting the Base Expression's SHN into numeric math formula
 	double									_spatialQuantity			= 0.0;							// the 'Spatial Quantity' value
 	std::string								_interprettedRelationship	= "";							// the interpretted relationship of the GrunItem for Item Qty calculation purposes
 	SpatialExponentValue					_itemQuantitySpatialUnit	= SpatialExponentValue::None;	// _itemQuantitySpatialUnit is the SpatialExponentValue (None,Linear,Area,Volume) that is assigned to the GrunItem based on the GrunItem's _itemQuantityUnits value *IF* the _itemQuantityUnits are already of a spatial unit type (dev-note: this mostly only works if the _itemQuantityUnits are 'm', 'm2', 'm3' and these values are hard coded in GrunObject::mapUnitToSpatialExponent() which will need to be more flexible for locales in the future)
-	std::string 							_itemQuantityFormula		= "";
 	double									_itemQuantity				= 0.0;
-	std::string 							_itemPrimaryLabourFormula	= "";
-	double									_itemPrimaryLabour			= 0.0;
-	// all values above, excluding _itemQuantity and _itemPrimaryLabour are required on GrunItem instantination as a minimum for the default construction
 
-	// overloaded ctr's will allow the dev to supply additional GrunItem values on instantination - this is for future development when GrunItem data will be sourced from a database or the network
+	// simple calculated members (these member values are calculated simply from the _itemQuantity value)
+	double									_itemPrimaryLabour			= 0.0;
 	double									_itemRoundUpFactor			= 1.0;
 	double									_itemQuantityRounded		= 0.0;
 	double									_itemWasteFactor			= 0.0;
@@ -62,6 +62,10 @@ class GrunItem
 	double									_itemItemizedProfitFactor	= 0.0;
 	double									_itemItemizedProfit			= 0.0;
 	
+	// generally 'static' members (they do not change based on the owning Grunobject's prooperties, usually stored in an inventory or database and passed in when the GrunItem is created)
+	// overloaded ctr's will allow the dev to supply additional GrunItem values on instantination - this is for future development when GrunItem data will be sourced from a database or the network
+	std::string 							_itemPrimaryLabourFormula	= "";
+	std::string 							_itemQuantityFormula		= "";
 	std::string								_itemCategory				= "";
 	std::string								_itemSupplier				= "";
 	std::string 							_itemSupplierSKU			= "";
@@ -84,7 +88,7 @@ class GrunItem
 	*/
 
 	// default ctr - assigns values to required fields
-	GrunItem(std::string name, std::string relationship, std::string quantityFormula = "", std::string units = "unit(s)", std::string primaryLabourFormula = "")
+	GrunItem(std::string name, std::string relationship = "", std::string quantityFormula = "", std::string units = "unit(s)", std::string primaryLabourFormula = "")
 		: _itemName(name), _relationship(relationship), _itemQuantityFormula(quantityFormula), _itemQuantityUnits(units), _itemPrimaryLabourFormula(primaryLabourFormula)
 	{
 		// add any needed calculations in here, example: use _relationship to determine value that allows quantifying the GrunItem's _itemQuantity

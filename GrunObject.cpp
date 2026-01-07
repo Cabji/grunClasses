@@ -470,9 +470,11 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
 
 	// zero-check: even if itemQuantity is 0, we still need to set everything else to 0.
 	// next, calculate all the GrunItem's member values
-	item._itemPrimaryLabour			= applyFormula(item._itemQuantity,item._itemPrimaryLabourFormula);
-	item._itemQuantityRounded		= cabji::roundToStep(item._itemQuantity,item._itemRoundUpFactor);
-	item._itemLKGWCalculated		= std::chrono::system_clock::now();
+	item._itemPrimaryLabour		= applyFormula(item._itemQuantity,item._itemPrimaryLabourFormula);
+	item._itemQuantityRounded	= cabji::roundToStep(item._itemQuantity,item._itemRoundUpFactor);
+	item._itemWasteAllowance	= item._itemQuantity * item._itemWasteFactor;
+	item._itemItemizedProfit	= item._itemQuantity * item._itemItemizedProfitFactor;
+	item._itemLKGWCalculated	= std::chrono::system_clock::now();
 	return true;
 }
 
