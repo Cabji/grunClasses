@@ -38,6 +38,7 @@ class GrunItem
 	public:
 	std::string 							_itemName					= "";							// required value on construction
 	std::string 							_relationship				= "";							// the relationship will ultimately NOT be required on object creation, only the itemName is
+	std::string								_comment					= "";							// a comment hte end user can put in for the item
 
 	// interpretted member values (members that are derived when the item's _relationship is interpretted)
 	// the members are listed in a rough locigal order of when they are calculated in the code

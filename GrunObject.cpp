@@ -366,9 +366,9 @@ std::string GrunObject::getGrunItemListInfoAsString(const std::string dateFormat
 	{
 		returnVal += std::format("{:<16} ",item._itemName.substr(0,16)) +
 					 std::format("{:<17} ","Rel: " + item._relationship.substr(0,12)) + 
-					 std::format("{:<13} ","SA: " + spatialExponentValueToString(item._spatialAnchor).substr(0,9)) + 
-					 std::format("{:<9}","Spa.Qty: ") + 
+					 std::format("{:<9}","SQ: ") + 
 					 std::format("{:>7.2f} ",item._spatialQuantity) +
+					 std::format("{:<13} ","SU: " + spatialExponentValueToString(item._spatialUnit).substr(0,9)) + 
 					 std::format("{:<10}","Item.Qty: ") + 
 					 std::format("{:>7.2f} ",item._itemQuantity) +
 					 std::format("{:<8} ",item._itemQuantityUnits.substr(0,8)) +
@@ -653,7 +653,8 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 	auto		current			= std::source_location::current();							// for debugging output if needed
 	int			spatialAnchor	= 0;
 
-	// we can assume the saneBaseExpr has *something* in it at this point
+	// we are assuming the saneBaseExpr has *something* in it at this point - probably dangerous
+	// strip * or / from front and back of string
 	while ((saneBaseExpr.front() == '*' || saneBaseExpr.front() == '/'))
 	{
 		// chomp the first char if its * or /
@@ -675,7 +676,7 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 	std::string numericExpr = saneBaseExpr;
 
 	// dev-note: we are assuming saneBaseExpr is a SANITIZED string. If you get unexpected behaviour, you should probably check the value of saneBaseExpr
-	// convert all GrunObject Tokens in saneBaseExpr to their Spatial Values
+	// convert GrunObject Tokens in numericExpr to their Spatial Exponent Values and convert * operators to +
 	for (char& c : numericExpr) 
 	{
 		// convert * operators to +, else convert GrunObject Token to its SpatialExponentValue and cast the number back as a char in the numericExpr string
@@ -698,13 +699,21 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 
 	// process the operators - loop through the numericExpr char by char with the index value avaiable
 	std::string	numericExprResult;
+	int			skipCount = 0;
 	for (auto [i, c] : std::views::enumerate(numericExpr))
 	{
+		// skip this iteration of the loop if skip count is counting down
+		if (skipCount > 0) { skipCount--; continue; }
+
 		std::optional<int> r;
-		if (c == '+' && i > 0 && i < numericExpr.length())
+		if (c == '+' && i > 0 && (i+1) < numericExpr.length())				// check we still have 1 more char in the numericExpr string
 		{
-			const int	lhs	= numericExpr[i-1] - '0';						// dev-note: we must use - '0' here to convert the CHAR 1 into type int 1
-			const int	rhs	= numericExpr[i+1] - '0';
+			// if we detect a ++ operator, skip the next 2 iterations
+			if ((i+2) < numericExpr.length() && numericExpr[i+1] == '+') { skipCount = 2; continue; }
+
+			// standard logic for single '+'
+			const int	lhs		= numericExpr[i-1] - '0';					// dev-note: we must use - '0' here to convert the CHAR 1 into type int 1
+			const int	rhs		= numericExpr[i+1] - '0';
 			r	= lhs + rhs;
 		}
 		if (r.has_value())
