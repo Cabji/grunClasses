@@ -466,8 +466,7 @@ double GrunObject::applyFormula(double lhs, const std::string &formula)
 }
 
 /**
- * @brief Calculates a GrunItem's member values after the item's relationship has been interpretted
- * @attention You should always call GrunObject::interpretGrunItemSpatialValues(GrunItem) and GrunObject::interpretGrunItemItemQuantity(GrunItem) before calling this function.
+ * @brief Calculates a GrunItem's member values
  * @param item (GrunItem) - the GrunItem to calculate the data for
  * @return true if successful, false if failure occurs
  */
@@ -647,14 +646,13 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 	bool foundARelationship = false;
 	// since GrunItem's can have arbitrary number of relationship strings, they are stored in a std::vector<std::string>
 	// loop the _relationship vector and handle each relationship the item has
-	for (std::string& relationship : item._relationship)
-		{
+	for (std::string relationship : item._relationship)
+	{
 		// zero-check and continue to skip relationship if it is empty
-		std::string	relStr			= relationship;
 		std::string	baseExpr		= "";
 		// get the base expression (anything before the last occurence of an @ char, or the whole string)
-		auto		atPos			= relStr.find_last_of('@');
-		baseExpr = relStr.substr(0, atPos);
+		auto		atPos			= relationship.find_last_of('@');
+		baseExpr = relationship.substr(0, atPos);
 		std::string	resultPattern	= "";
 		// use regex_replace to find significant characters in the baseExpr and put them in a string														// the replacement pattern used for a regex_replace call
 		
@@ -812,27 +810,29 @@ bool GrunObject::interpretGrunItemItemQuantity(GrunItem &item)
 	// zero-check
 	if (item._relationship.empty()) return false;
 
-	std::string	parsedRel	= item._relationship;
-	std::erase_if(parsedRel, [](char c) { return std::isspace(static_cast<unsigned char>(c)); });			// strip whitespace
-	//parsedRel	= std::regex_replace(parsedRel, REGEX_SHN_TO_PEDMAS_0_WRAP_ALL_IN_PARENTHESES, "($1)");
-	parsedRel	= std::regex_replace(parsedRel, REGEX_SHN_TO_PEDMAS_1_EXPLICIT_COMBINE_OPERATOR, ")$1(");
-	parsedRel	= std::regex_replace(parsedRel, REGEX_SHN_TO_PEDMAS_2_NUM_FACTOR_AND_GO_TOKEN, "($1*$2)");
-	parsedRel	= std::regex_replace(parsedRel, REGEX_SHN_TO_PEDMAS_3_AT_OPERATOR, "/$2+1");
-	parsedRel	= std::regex_replace(parsedRel, REGEX_SHN_TO_PEDMAS_4_MISSING_NUMERIC_FACTOR, "(1*");
-	parsedRel	= std::regex_replace(parsedRel, REGEX_SHN_TO_PEDMAS_5_IMPLICIT_ADD_OPERATORS, ")+(");
-	parsedRel	= std::regex_replace(parsedRel, REGEX_SHN_TO_PEDMAS_6_PRIORITIZE_COMBINING_TERMS, "($1)");
-
-	item._interprettedRelationship = substituteRelationshipTokens(parsedRel);
-	double	itemQty	= evaluateArithmetic(item._interprettedRelationship);
-	// itemQty at this point is only preliminary. check if the item has a value for its _itemQuantityFormula and apply it if it does
-	if (!item._itemQuantityFormula.empty())
+	for (std::string relationship : item._relationship)
 	{
-		std::string	tempForm	= std::to_string(itemQty) + item._itemQuantityFormula;
-		itemQty					= evaluateArithmetic(tempForm);
+		std::erase_if(relationship, [](char c) { return std::isspace(static_cast<unsigned char>(c)); });			// strip whitespace
+		//relationship	= std::regex_replace(relationship, REGEX_SHN_TO_PEDMAS_0_WRAP_ALL_IN_PARENTHESES, "($1)");
+		relationship	= std::regex_replace(relationship, REGEX_SHN_TO_PEDMAS_1_EXPLICIT_COMBINE_OPERATOR, ")$1(");
+		relationship	= std::regex_replace(relationship, REGEX_SHN_TO_PEDMAS_2_NUM_FACTOR_AND_GO_TOKEN, "($1*$2)");
+		relationship	= std::regex_replace(relationship, REGEX_SHN_TO_PEDMAS_3_AT_OPERATOR, "/$2+1");
+		relationship	= std::regex_replace(relationship, REGEX_SHN_TO_PEDMAS_4_MISSING_NUMERIC_FACTOR, "(1*");
+		relationship	= std::regex_replace(relationship, REGEX_SHN_TO_PEDMAS_5_IMPLICIT_ADD_OPERATORS, ")+(");
+		relationship	= std::regex_replace(relationship, REGEX_SHN_TO_PEDMAS_6_PRIORITIZE_COMBINING_TERMS, "($1)");
+
+		item._interprettedRelationship = substituteRelationshipTokens(relationship);
+		double	itemQty	= evaluateArithmetic(item._interprettedRelationship);
+		// itemQty at this point is only preliminary. check if the item has a value for its _itemQuantityFormula and apply it if it does
+		if (!item._itemQuantityFormula.empty())
+		{
+			std::string	tempForm	= std::to_string(itemQty) + item._itemQuantityFormula;
+			itemQty					= evaluateArithmetic(tempForm);
+		}
+		
+		item._itemQuantity = itemQty;
+		// std::println("relationship: {}",relationship);
 	}
-	
-	item._itemQuantity = itemQty;
-	// std::println("parsedRel: {}",parsedRel);
 	return false;
 }
 

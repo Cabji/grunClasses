@@ -21,6 +21,6 @@ int main ()
 	
 	std::println("GrunObject's details: Name: {}\n\tLength: {}\tWidth: {}\tDepth: {}\tArea: {}",slab.getObjectName(),slab.getObjectProperty("length"),slab.getObjectProperty("width"),slab.getObjectProperty("depth"),slab.getObjectProperty("area"));
 	std::println("GrunObject [{}] Item List information:\n{}", slab.getObjectName(), slab.getGrunItemListInfoAsString("%Y%m%d %H%M%S"));
-	slab.calculateGrunObjectTotals();
+	// slab.calculateGrunObjectTotals();
 	// std::println("GrunObject's Totals Data {}", slab.getGrunObjectTotalsInfoAsString());
 }
