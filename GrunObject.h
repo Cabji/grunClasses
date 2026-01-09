@@ -199,13 +199,13 @@ class GrunObject
     static int 					asInt(SpatialExponentValue unit);
 
 
-	bool			addGrunItem(std::string name,					std::string relationship, 
-								std::string quantityFormula = "",	std::string units = "unit(s)", 
+	bool			addGrunItem(std::string name,						std::vector<std::string> relationship, 
+								std::string quantityFormula = "",		std::string units = "unit(s)", 
 								std::string primaryLabourFormula = ""
 							   );
 
 
-	int				calculateGrunObjectTotals();
+	// int				calculateGrunObjectTotals();	// temporarily commented out. needs to support GrunItem::_relationship being a std::vector
     double 			getAspectRatio();
 	std::string		getGrunItemListInfoAsString(const std::string dateFormat = "%d/%m/%Y");
 	std::string		getGrunObjectTotalsInfoAsString() const;

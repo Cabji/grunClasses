@@ -37,7 +37,7 @@ class GrunItem
 {
 	public:
 	std::string 							_itemName					= "";							// required value on construction
-	std::string 							_relationship				= "";							// the relationship will ultimately NOT be required on object creation, only the itemName is
+	std::vector<std::string>				_relationship;												// the relationship will ultimately NOT be required on object creation, only the itemName is
 	std::string								_comment					= "";							// a comment hte end user can put in for the item
 
 	// interpretted member values (members that are derived when the item's _relationship is interpretted)
@@ -89,8 +89,8 @@ class GrunItem
 	*/
 
 	// default ctr - assigns values to required fields
-	GrunItem(std::string name, std::string relationship = "", std::string quantityFormula = "", std::string units = "unit(s)", std::string primaryLabourFormula = "")
-		: _itemName(name), _relationship(relationship), _itemQuantityFormula(quantityFormula), _itemQuantityUnits(units), _itemPrimaryLabourFormula(primaryLabourFormula)
+	GrunItem(std::string name, std::vector<std::string> relationship = {}, std::string quantityFormula = "", std::string units = "unit(s)", std::string primaryLabourFormula = "")
+		: _itemName(std::move(name)), _relationship(std::move(relationship)), _itemQuantityFormula(std::move(quantityFormula)), _itemQuantityUnits(std::move(units)), _itemPrimaryLabourFormula(std::move(primaryLabourFormula))
 	{
 		// add any needed calculations in here, example: use _relationship to determine value that allows quantifying the GrunItem's _itemQuantity
 	}

@@ -231,7 +231,7 @@ int GrunObject::asInt(SpatialExponentValue unit) {
  * @param primaryLabourFormula formula applied to quantity of this Item to calculate Primary Labour quantity (empty by default)
  * @return true if successful, false if failure.
  */
-bool GrunObject::addGrunItem(std::string name, std::string relationship, std::string quantityFormula, std::string units, std::string primaryLabourFormula)
+bool GrunObject::addGrunItem(std::string name, std::vector<std::string> relationship, std::string quantityFormula, std::string units, std::string primaryLabourFormula)
 {
 	// zero check
 	GrunItem newItem(name, relationship, quantityFormula, units, primaryLabourFormula);
@@ -364,8 +364,17 @@ std::string GrunObject::getGrunItemListInfoAsString(const std::string dateFormat
 	if (!m_items.empty()) { returnVal = "GrunItems in Element '" + m_name +"'\n"; }
 	for (auto item : m_items)
 	{
-		returnVal += std::format("{:<16} ",item._itemName.substr(0,16)) +
-					 std::format("{:<17} ","Rel: " + item._relationship.substr(0,12)) + 
+		returnVal += std::format("{:<16} ",item._itemName.substr(0,16));
+		
+		// deal with item's relationship vector
+		std::string	relOutString = "";
+		for (std::string& relationship : item._relationship)
+		{
+			relOutString += relationship + ", ";
+		}
+		relOutString = relOutString.substr(0, (relOutString.length() - 2));			// remove trailing ", "
+
+		returnVal += std::format("Rel: {:<12} ",relOutString.substr(0,12)) + 			 
 					 std::format("{:<9}","SQ: ") + 
 					 std::format("{:>7.2f} ",item._spatialQuantity) +
 					 std::format("{:<13} ","SU: " + spatialExponentValueToString(item._spatialUnit).substr(0,9)) + 
@@ -478,70 +487,70 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
 	return true;
 }
 
-int GrunObject::calculateGrunObjectTotals()
-{
-	// loop through the pointer-to-members in m_totalsPtrs using the number of members assigned in the GrunObjectTotals struct
-	for (int i = 0; i < GrunObjectTotals::getMapCount(); i++)
-	{
-		// define the destination for our data
-		// set which member of GrunObjectTotals we are pointing to using the value of i as the index of the GrunObjectTotals::TOTAL_PTRS[] array
-		auto		memberPtr	= GrunObjectTotals::TOTALS_PTRS[i];
-		auto&		currentMap	= m_objectTotals.*memberPtr;
+// int GrunObject::calculateGrunObjectTotals()
+// {
+// 	// loop through the pointer-to-members in m_totalsPtrs using the number of members assigned in the GrunObjectTotals struct
+// 	for (int i = 0; i < GrunObjectTotals::getMapCount(); i++)
+// 	{
+// 		// define the destination for our data
+// 		// set which member of GrunObjectTotals we are pointing to using the value of i as the index of the GrunObjectTotals::TOTAL_PTRS[] array
+// 		auto		memberPtr	= GrunObjectTotals::TOTALS_PTRS[i];
+// 		auto&		currentMap	= m_objectTotals.*memberPtr;
 
-		for (const auto& item : m_items)
-		{
-			// Temporary variables to hold the aggregation data determined by the switch
-			std::string aggregationKey	= "";
-			double		itemQuantity	= 0.0;
-			std::string	itemUnit		= "";
+// 		for (const auto& item : m_items)
+// 		{
+// 			// Temporary variables to hold the aggregation data determined by the switch
+// 			std::string aggregationKey	= "";
+// 			double		itemQuantity	= 0.0;
+// 			std::string	itemUnit		= "";
 
-			switch (i)
-			{
-				case 0:
-					// Case 0 (Labour Total): Aggregate everything into a single grand total, keyed by the object's name.
-					aggregationKey	= m_name;
-					itemQuantity	= item._itemPrimaryLabour;
-					itemUnit		= item._itemPrimaryLabourUnits;
-					break;
+// 			switch (i)
+// 			{
+// 				case 0:
+// 					// Case 0 (Labour Total): Aggregate everything into a single grand total, keyed by the object's name.
+// 					aggregationKey	= m_name;
+// 					itemQuantity	= item._itemPrimaryLabour;
+// 					itemUnit		= item._itemPrimaryLabourUnits;
+// 					break;
 				
-				case 1:
-					// Case 1 (Spatial Totals): Aggregate by the relationship unit (e.g., 'A', '2W', 'V')
-					aggregationKey	= item._relationship;
-					itemQuantity	= item._spatialQuantity;
-					itemUnit		= item._relationship; // Use relationship string as the unit/identifier
-					break;
+// 				case 1:
+// 					// Case 1 (Spatial Totals): Aggregate by the relationship unit (e.g., 'A', '2W', 'V')
+// 					aggregationKey	= item._relationship;
+// 					itemQuantity	= item._spatialQuantity;
+// 					itemUnit		= item._relationship; // Use relationship string as the unit/identifier
+// 					break;
 
-				case 2:
-					// Case 2 (Item Unit Totals): Aggregate by the Item Name.
-					aggregationKey	= item._itemName; 
-					itemQuantity	= item._itemQuantity;
-					itemUnit		= item._itemQuantityUnits; // Use the base item unit
-					break;
+// 				case 2:
+// 					// Case 2 (Item Unit Totals): Aggregate by the Item Name.
+// 					aggregationKey	= item._itemName; 
+// 					itemQuantity	= item._itemQuantity;
+// 					itemUnit		= item._itemQuantityUnits; // Use the base item unit
+// 					break;
 				
-				default:
-					break;
-			}
+// 				default:
+// 					break;
+// 			}
 			
-			// 2. Aggregation step: Use the determined key to look up (or create) the entry in the map
-			if (itemQuantity != 0.0 && !aggregationKey.empty()) 
-			{
-				// Get a reference to the specific TotalAndUnit structure we want to update.
-				// operator[] will create a new TotalAndUnit entry if the key doesn't exist.
-				TotalAndUnit& entry = currentMap[aggregationKey];
+// 			// 2. Aggregation step: Use the determined key to look up (or create) the entry in the map
+// 			if (itemQuantity != 0.0 && !aggregationKey.empty()) 
+// 			{
+// 				// Get a reference to the specific TotalAndUnit structure we want to update.
+// 				// operator[] will create a new TotalAndUnit entry if the key doesn't exist.
+// 				TotalAndUnit& entry = currentMap[aggregationKey];
 
-				// Aggregate the total value
-				entry._total += itemQuantity;
+// 				// Aggregate the total value
+// 				entry._total += itemQuantity;
 
-				// Set the unit: Only set it if the entry is currently using the default/empty unit.
-				// This ensures the unit from the first item aggregated is used for the key.
-				if (entry._unit == "unit(s)" || entry._unit.empty()) {
-					entry._unit = itemUnit;
-				}
-			}
-		}
-	}
-	return 0;
-}
+// 				// Set the unit: Only set it if the entry is currently using the default/empty unit.
+// 				// This ensures the unit from the first item aggregated is used for the key.
+// 				if (entry._unit == "unit(s)" || entry._unit.empty()) {
+// 					entry._unit = itemUnit;
+// 				}
+// 			}
+// 		}
+// 	}
+// 	return 0;
+// }
 
 // looks at a GrunItem's unit of measure and tries to determine which SpatialExponentValue it should be
 SpatialExponentValue GrunObject::mapUnitToSpatialExponent(const std::string& unit) const
@@ -635,124 +644,134 @@ std::string GrunObject::substituteRelationshipTokens(const std::string& relation
  */
 bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 {
-	// zero-check and return out false to indicate interpretation was failure
-	std::string	relStr			= item._relationship;
-	std::string	baseExpr		= "";
-	// get the base expression (anything before the last occurence of an @ char, or the whole string)
-	auto		atPos			= relStr.find_last_of('@');
-	baseExpr = relStr.substr(0, atPos);
-	std::string	resultPattern	= "";
-	// use regex_replace to find significant characters in the baseExpr and put them in a string														// the replacement pattern used for a regex_replace call
-	
-	std::string	saneBaseExpr	= std::regex_replace(baseExpr, REGEX_GI_BASEEXPR_SIG_TOKENS_AND_OPS, resultPattern);
-	if (saneBaseExpr.empty())
-		return false;
-
-	item._baseExpression = baseExpr;
-	// data acquisition - make a copy of _relationship because we need to modify it, but preserve the original value
-	auto		current			= std::source_location::current();							// for debugging output if needed
-	int			spatialAnchor	= 0;
-
-	// we are assuming the saneBaseExpr has *something* in it at this point - probably dangerous
-	// strip * or / from front and back of string
-	while ((saneBaseExpr.front() == '*' || saneBaseExpr.front() == '/'))
-	{
-		// chomp the first char if its * or /
-		saneBaseExpr.erase(0,1);
-	}
-	while ((saneBaseExpr.back() == '*' || saneBaseExpr.back() == '/'))
-	{
-		// chomp the last char if its * or /
-		saneBaseExpr.pop_back();
-	}
-
-	// assign saneBaseExpr to the appropriate member in the item
-	item._baseExpressionIntprForSU = saneBaseExpr;
-
-	// now we have to calculate what the saneBaseExpr equals in Spatial Unit Value
-	// set the saneBaseExpr's total Spatial Value to 0
-	int exprTotalSV	= 0;
-	
-	std::string numericExpr = saneBaseExpr;
-
-	// dev-note: we are assuming saneBaseExpr is a SANITIZED string. If you get unexpected behaviour, you should probably check the value of saneBaseExpr
-	// convert GrunObject Tokens in numericExpr to their Spatial Exponent Values and convert * operators to +
-	for (char& c : numericExpr) 
-	{
-		// convert * operators to +, else convert GrunObject Token to its SpatialExponentValue and cast the number back as a char in the numericExpr string
-		if (c == '*')
-			c = '+';
-		else
-			c = static_cast<char>(asInt(getTokenExponent(c)) + 48);	// dev-note: + 48 to correctly cast the returned int value BACK to a char
-	}
-
-	item._baseExpressionIntprNumeric = numericExpr;
-
-	// get the largest number in the numericExpr, clamp to min 0 and max 3
-	auto digits	= numericExpr 
-				| std::views::filter(::isdigit)
-            	| std::views::transform([](char c) { return c - '0'; });
-
-	if (!digits.empty())
-		spatialAnchor 	= std::clamp(std::ranges::max(digits),0,3);
-	item._spatialAnchor	= static_cast<SpatialExponentValue>(spatialAnchor);						  
-
-	// process the operators - loop through the numericExpr char by char with the index value avaiable
-	std::string	numericExprResult;
-	int			skipCount = 0;
-	for (auto [i, c] : std::views::enumerate(numericExpr))
-	{
-		// skip this iteration of the loop if skip count is counting down
-		if (skipCount > 0) { skipCount--; continue; }
-
-		std::optional<int> r;
-		if (c == '+' && i > 0 && (i+1) < numericExpr.length())				// check we still have 1 more char in the numericExpr string
+	bool foundARelationship = false;
+	// since GrunItem's can have arbitrary number of relationship strings, they are stored in a std::vector<std::string>
+	// loop the _relationship vector and handle each relationship the item has
+	for (std::string& relationship : item._relationship)
 		{
-			// if we detect a ++ operator, skip the next 2 iterations
-			if ((i+2) < numericExpr.length() && numericExpr[i+1] == '+') { skipCount = 2; continue; }
+		// zero-check and continue to skip relationship if it is empty
+		std::string	relStr			= relationship;
+		std::string	baseExpr		= "";
+		// get the base expression (anything before the last occurence of an @ char, or the whole string)
+		auto		atPos			= relStr.find_last_of('@');
+		baseExpr = relStr.substr(0, atPos);
+		std::string	resultPattern	= "";
+		// use regex_replace to find significant characters in the baseExpr and put them in a string														// the replacement pattern used for a regex_replace call
+		
+		std::string	saneBaseExpr	= std::regex_replace(baseExpr, REGEX_GI_BASEEXPR_SIG_TOKENS_AND_OPS, resultPattern);
+		if (saneBaseExpr.empty())
+			continue;
 
-			// standard logic for single '+'
-			const int	lhs		= numericExpr[i-1] - '0';					// dev-note: we must use - '0' here to convert the CHAR 1 into type int 1
-			const int	rhs		= numericExpr[i+1] - '0';
-			r	= lhs + rhs;
-		}
-		if (r.has_value())
-			numericExprResult += std::to_string(r.value());
-		else
+		foundARelationship = true;
+		item._baseExpression = baseExpr;
+		// data acquisition - make a copy of _relationship because we need to modify it, but preserve the original value
+		auto		current			= std::source_location::current();							// for debugging output if needed
+		int			spatialAnchor	= 0;
+
+		// we are assuming the saneBaseExpr has *something* in it at this point - probably dangerous
+		// strip * or / from front and back of string
+		while ((saneBaseExpr.front() == '*' || saneBaseExpr.front() == '/'))
 		{
-			const bool	plusOnLeft 	= (i > 0 && numericExpr[i-1] == '+');
-			const bool	plusOnRight	= (i+1 < numericExpr.length() && numericExpr[i+1] == '+');
-			if (!plusOnLeft && !plusOnRight && c != '+')
-				numericExprResult += c;
+			// chomp the first char if its * or /
+			saneBaseExpr.erase(0,1);
 		}
+		while ((saneBaseExpr.back() == '*' || saneBaseExpr.back() == '/'))
+		{
+			// chomp the last char if its * or /
+			saneBaseExpr.pop_back();
+		}
+
+		// assign saneBaseExpr to the appropriate member in the item
+		item._baseExpressionIntprForSU = saneBaseExpr;
+
+		// now we have to calculate what the saneBaseExpr equals in Spatial Unit Value
+		// set the saneBaseExpr's total Spatial Value to 0
+		int exprTotalSV	= 0;
+		
+		std::string numericExpr = saneBaseExpr;
+
+		// dev-note: we are assuming saneBaseExpr is a SANITIZED string. If you get unexpected behaviour, you should probably check the value of saneBaseExpr
+		// convert GrunObject Tokens in numericExpr to their Spatial Exponent Values and convert * operators to +
+		for (char& c : numericExpr) 
+		{
+			// convert * operators to +, else convert GrunObject Token to its SpatialExponentValue and cast the number back as a char in the numericExpr string
+			if (c == '*')
+				c = '+';
+			else
+				c = static_cast<char>(asInt(getTokenExponent(c)) + 48);	// dev-note: + 48 to correctly cast the returned int value BACK to a char
+		}
+
+		item._baseExpressionIntprNumeric = numericExpr;
+
+		// get the largest number in the numericExpr, clamp to min 0 and max 3
+		auto digits	= numericExpr 
+					| std::views::filter(::isdigit)
+					| std::views::transform([](char c) { return c - '0'; });
+
+		if (!digits.empty())
+			spatialAnchor 	= std::clamp(std::ranges::max(digits),0,3);
+		item._spatialAnchor	= static_cast<SpatialExponentValue>(spatialAnchor);						  
+
+		// process the operators - loop through the numericExpr char by char with the index value avaiable
+		std::string	numericExprResult;
+		int			skipCount = 0;
+		for (auto [i, c] : std::views::enumerate(numericExpr))
+		{
+			// skip this iteration of the loop if skip count is counting down
+			if (skipCount > 0) { skipCount--; continue; }
+
+			std::optional<int> r;
+			if (c == '+' && i > 0 && (i+1) < numericExpr.length())				// check we still have 1 more char in the numericExpr string
+			{
+				// if we detect a ++ operator, skip the next 2 iterations
+				if ((i+2) < numericExpr.length() && numericExpr[i+1] == '+') { skipCount = 2; continue; }
+
+				// standard logic for single '+'
+				const int	lhs		= numericExpr[i-1] - '0';					// dev-note: we must use - '0' here to convert the CHAR 1 into type int 1
+				const int	rhs		= numericExpr[i+1] - '0';
+				r	= lhs + rhs;
+			}
+			if (r.has_value())
+				numericExprResult += std::to_string(r.value());
+			else
+			{
+				const bool	plusOnLeft 	= (i > 0 && numericExpr[i-1] == '+');
+				const bool	plusOnRight	= (i+1 < numericExpr.length() && numericExpr[i+1] == '+');
+				if (!plusOnLeft && !plusOnRight && c != '+')
+					numericExprResult += c;
+			}
+		}
+
+		int spatialUnit = 0;
+		auto digitsAfter	= numericExprResult
+							| std::views::transform([](char c) { return c - '0'; });
+		if (!digitsAfter.empty())
+			spatialUnit = std::ranges::max(digitsAfter);
+		
+		item._spatialUnit = static_cast<SpatialExponentValue>(spatialUnit);
+
+		// to calculate the Spatial Quantity we must evaluate the GrunItem's base expression
+		item._spatialQuantityFormula = convertSpatialQuantitySHNToPEDMAS(item._baseExpression);
+		item._spatialQuantityFormula = substituteRelationshipTokens(item._spatialQuantityFormula);
+		item._spatialQuantity = evaluateArithmetic(item._spatialQuantityFormula);
+
+		// debug output
+		// std::println("Debug Output in: {}",current.function_name());
+		// std::print("item.rel: {:>15} ",item._relationship.substr(0,25));
+		// std::print("baseExpr: {:>10} ",item._baseExpression.substr(0,20));
+		// std::print("bEForSV: {:>5} ",item._baseExpressionIntprForSU.substr(0,14));
+		// std::print("bEIntNum: {:>5} ",item._baseExpressionIntprNumeric.substr(0,15));
+		// std::print("S.A.: {:>7} ",spatialExponentValueToString(item._spatialAnchor));
+		// std::print("numericExprRes: {:>6} ",numericExprResult.substr(0,22));
+		// std::print("S.U.: {:>7} ",spatialExponentValueToString(item._spatialUnit));
+		// std::println("SQF: {:>25} ",item._spatialQuantityFormula.substr(0,30));
 	}
-
-	int spatialUnit = 0;
-	auto digitsAfter	= numericExprResult
-            			| std::views::transform([](char c) { return c - '0'; });
-	if (!digitsAfter.empty())
-		spatialUnit = std::ranges::max(digitsAfter);
-	
-	item._spatialUnit = static_cast<SpatialExponentValue>(spatialUnit);
-
-	// to calculate the Spatial Quantity we must evaluate the GrunItem's base expression
-	item._spatialQuantityFormula = convertSpatialQuantitySHNToPEDMAS(item._baseExpression);
-	item._spatialQuantityFormula = substituteRelationshipTokens(item._spatialQuantityFormula);
-	item._spatialQuantity = evaluateArithmetic(item._spatialQuantityFormula);
-
-	// debug output
-	// std::println("Debug Output in: {}",current.function_name());
-	// std::print("item.rel: {:>15} ",item._relationship.substr(0,25));
-	// std::print("baseExpr: {:>10} ",item._baseExpression.substr(0,20));
-	// std::print("bEForSV: {:>5} ",item._baseExpressionIntprForSU.substr(0,14));
-	// std::print("bEIntNum: {:>5} ",item._baseExpressionIntprNumeric.substr(0,15));
-	// std::print("S.A.: {:>7} ",spatialExponentValueToString(item._spatialAnchor));
-	// std::print("numericExprRes: {:>6} ",numericExprResult.substr(0,22));
-	// std::print("S.U.: {:>7} ",spatialExponentValueToString(item._spatialUnit));
-	// std::println("SQF: {:>25} ",item._spatialQuantityFormula.substr(0,30));
 
 	// return true to indicate interpretation was a success
-	return true;
+	if (foundARelationship) 
+		return true;
+	else
+		return false;
 }
 
 /**

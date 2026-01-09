@@ -1,5 +1,15 @@
 this file is just a text file where i can save notes while i'm developing the project.
 
+refactor class code to support vector of relationship strings in GrunItem class
+
+use vector for GrunItem _relationship because an item COULD have multiple _relationships with its owning GrunObject
+
+Example: N12 6000 stock bars
+	Rel 1: 2L2W (ex: trimmer bars around perimeter)
+	Rel 2: 3.0*1L@0.4 (ex: extra bars for slab stiffening, 3.0 long each bar at 0.4 intervals along the length)
+
+---
+
 totalling
 
 this is taking a set of data and grouping it by one of the fields/columns in the set and combining each group's total in another field.
@@ -12,8 +22,3 @@ therefore, we need:
 
 ---
 
-use vector for GrunItem _relationship because an item COULD have multiple _relationships with its owning GrunObject
-
-Example: N12 6000 stock bars
-	Rel 1: 2L2W (ex: trimmer bars around perimeter)
-	Rel 2: 3.0*1L@0.4 (ex: extra bars for slab stiffening, 3.0 long each bar at 0.4 intervals along the length)
