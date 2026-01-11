@@ -231,7 +231,7 @@ int GrunObject::asInt(SpatialExponentValue unit) {
  * @param primaryLabourFormula formula applied to quantity of this Item to calculate Primary Labour quantity (empty by default)
  * @return true if successful, false if failure.
  */
-bool GrunObject::addGrunItem(std::string name, std::vector<std::string> relationship, std::string quantityFormula, std::string units, std::string primaryLabourFormula)
+bool GrunObject::addGrunItem(std::string name, std::string relationship, std::string quantityFormula, std::string units, std::string primaryLabourFormula)
 {
 	// zero check
 	GrunItem newItem(name, relationship, quantityFormula, units, primaryLabourFormula);
@@ -366,20 +366,33 @@ std::string GrunObject::getGrunItemListInfoAsString(const std::string dateFormat
 	{
 		returnVal += std::format("{:<16} ",item._itemName.substr(0,16));
 		
-		// deal with item's relationship vector
-		std::string	relOutString = "";
-		for (std::string& relationship : item._relationship)
-		{
-			relOutString += relationship + ", ";
-		}
-		relOutString = relOutString.substr(0, (relOutString.length() - 2));			// remove trailing ", "
+		// deal with item's CoreValue vector
+		int			numRels			= item.getNumberOfRelationships();
+		std::string	osRelationship	= "";
+		std::string osSpatialQty	= "";
+		std::string osSpatialUnit	= "";
+		std::string osItemQty		= "";
 
-		returnVal += std::format("Rel: {:<12} ",relOutString.substr(0,12)) + 			 
+		for (int i = 0; i < numRels; ++i)
+		{
+			
+			osRelationship	+= item._itemCoreValues[i].relationship												+ ", ";
+			osSpatialQty	+= std::format("{:7.2f}, ",item._itemCoreValues[i].spatialQuantity);
+			osSpatialUnit	+= spatialExponentValueToString(item._itemCoreValues[i].spatialUnit).substr(0,9)	+ ", ";
+			osItemQty		+= std::format("{:7.2f}, ",item._itemCoreValues[i].itemQuantity);
+		}
+		// remove trailing ", "
+		osRelationship	= osRelationship.substr(0, (osRelationship.length() - 2));
+		osSpatialQty	= osRelationship.substr(0, (osRelationship.length() - 2));
+		osSpatialUnit	= osRelationship.substr(0, (osRelationship.length() - 2));
+		osItemQty		= osRelationship.substr(0, (osRelationship.length() - 2));
+
+		returnVal += std::format("Rel: {:<12} ",osRelationship.substr(0,12)) + 			 
 					 std::format("{:<9}","SQ: ") + 
-					 std::format("{:>7.2f} ",item._spatialQuantity) +
-					 std::format("{:<13} ","SU: " + spatialExponentValueToString(item._spatialUnit).substr(0,9)) + 
+					 std::format("{:<9} ",osSpatialQty) +
+					 std::format("SU:{:<11} ",osSpatialUnit + 
 					 std::format("{:<10}","Item.Qty: ") + 
-					 std::format("{:>7.2f} ",item._itemQuantity) +
+					 std::format("{:<9} ",osItemQty +
 					 std::format("{:<8} ",item._itemQuantityUnits.substr(0,8)) +
 					 std::format("(R:{:>7.2f}) ",item._itemQuantityRounded) +
 					 std::format("{:<10} ","P.Labour:") + 

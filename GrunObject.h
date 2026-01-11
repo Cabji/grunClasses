@@ -199,7 +199,7 @@ class GrunObject
     static int 					asInt(SpatialExponentValue unit);
 
 
-	bool			addGrunItem(std::string name,						std::vector<std::string> relationship, 
+	bool			addGrunItem(std::string name,						std::string relationship, 
 								std::string quantityFormula = "",		std::string units = "unit(s)", 
 								std::string primaryLabourFormula = ""
 							   );

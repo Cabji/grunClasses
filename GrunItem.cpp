@@ -1,5 +1,29 @@
 #include "GrunItem.h"
 
+GrunItem::GrunItem(	std::string name,
+					std::string relationship,
+					std::string quantityFormula, 
+					std::string units,
+					std::string primaryLabourFormula
+				)
+				:	_itemName(std::move(name)),
+					_relationship(std::move(relationship)),
+					_itemQuantityFormula(std::move(quantityFormula)),
+					_itemQuantityUnits(std::move(units)),
+					_itemPrimaryLabourFormula(std::move(primaryLabourFormula))
+{
+	// on GrunItem creation, set the _itemCoreValues member up in a CoreValues object
+	CoreValues	newValues;
+	newValues.relationship				= relationship;
+	newValues.relComment				= "";
+	newValues.isCompoundRelationship	= false;
+	newValues.itemQuantity				= 0.0;
+	newValues.spatialQuantity			= 0.0;
+	newValues.spatialUnit				= SpatialExponentValue::None;
+	
+	this->_itemCoreValues.push_back(newValues);
+}
+
 /**
  * @brief Returns a SpatialExponentValue as a string for friendly output
  * @param exponent	- the SpatialExponentValue to return
@@ -15,6 +39,21 @@ std::string spatialExponentValueToString(SpatialExponentValue exponent)
         case SpatialExponentValue::Volume:		return "Volume";
         default:					            return "UNKNOWN";
     }
+}
+
+void GrunItem::setCoreValues(std::string relationship, std::string relComment, bool isCompoundRelationship, double itemQuantity, double spatialQuantity, SpatialExponentValue spatialUnit)
+{
+}
+
+void setCoreValues(	std::string relationship			= "", 
+					std::string relComment				= "",
+					bool isCompoundRelationship			= false, 
+					double itemQuantity 				= 0.0, 
+					double spatialQuantity				= 0.0, 
+					SpatialExponentValue spatialUnit 	= SpatialExponentValue::None
+				   )
+{
+
 }
 
 /**
