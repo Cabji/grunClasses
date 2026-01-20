@@ -21,6 +21,20 @@ enum class SpatialExponentValue {
 std::string spatialExponentValueToString(SpatialExponentValue exponent);
 
 /**
+ * @brief RelationshipValues struct are the members in Grunitem that are all linked together via the Item's relationship.
+ * @note Because we need to support Items having multiple relationships, this struct will help us keep all members that are influenced by the item's relationship in a neat unit.
+ */
+struct ReationshipValues
+{
+	std::string				relationship;
+	std::string				relComment;
+	bool					isCompoundRelationship;
+	double					itemQuantity;
+	double					spatialQuantity;
+	SpatialExponentValue	spatialUnit;
+};
+
+/**
  * @brief GrunItem is an instance of an Item from the inventory (eg: a Material, Service, or some form of Secondary Labour). GrunItem will generally have a 'relationship' to its 'owner' GrunObject, or GrunItem can simply have an incidental amount as its relationship, like: 1 to add 1 roll of tie wire to the job, or 8 to set 8 hours of buffer labour to the job.
  * @note mandatory info about a GrunItem to create a fully working instance of it is: 
 	- _itemName, _relationship, _itemQuantityFormula, _itemUnits, _itemPrimaryLabourFormula
@@ -35,23 +49,9 @@ std::string spatialExponentValueToString(SpatialExponentValue exponent);
  */
 class GrunItem
 {
-/**
- * @brief CoreValues struct are the members in Grunitem that are all linked together via the Item's relationship.
- * @note Because we need to support Items having multiple relationships, this struct will help us keep all members that are influenced by the item's relationship in a neat unit.
- */
-	struct CoreValues
-	{
-		std::string				relationship;
-		std::string				relComment;
-		bool					isCompoundRelationship;
-		double					itemQuantity;
-		double					spatialQuantity;
-		SpatialExponentValue	spatialUnit;
-	};
-
 	public:
 	std::string 							_itemName					= "";							// required value on construction
-	std::vector<CoreValues>					_itemCoreValues				= {};							// the core values in a GrunItem that must stay synced together
+	std::vector<ReationshipValues>					_itemCoreValues				= {};							// the core values in a GrunItem that must stay synced together
 	std::string								_relationship;												// the relationship will ultimately NOT be required on object creation, only the itemName is
 	std::string								_comment					= "";							// a comment hte end user can put in for the item
 
@@ -107,29 +107,30 @@ class GrunItem
 
 	// default ctr - assigns values to required fields
 	GrunItem(	std::string name,
-				std::string relationship = "",
-				std::string quantityFormula = "", 
-				std::string units = "unit(s)",
-				std::string primaryLabourFormula = ""
+				std::string relationship			= "",
+				std::string	relComment				= "",
+				std::string quantityFormula			= "", 
+				std::string units					= "unit(s)",
+				std::string primaryLabourFormula	= ""
 			);
 
 	std::string	getCalculatedTimeString(const std::chrono::system_clock::time_point& member, const std::string& format = "%Y%m%d %H:%M:%S");
 	int			getNumberOfRelationships() { return _itemCoreValues.size(); }
 	
 	/**
-	 * @brief Set GrunItem's core values. Allows default values.
+	 * @brief Add new RelationshipValues to GrunItem. Allows default values.
 	 * @param	relationship			(std::string)	a relationship string for the owning GrunItem
 	 * @param	relComment				(std::string)	a comment string specifically to describe the relationship (optional)
-	 * @param	isCompoundRelationship	(bool)			if the relationship is compound or not	
+	 * @param	isCompoundRelationship	(bool)			if the relationship is compound or not (this will get calculated later on too)
 	 * @param	itemQuantity			(double)		the calculated item quantity based on the relationship
 	 * @param	spatialQuantity			(double)		the calculated spatial quantity based on the relationship
 	 * @param	spatialUnit				(SpatialExponentValue)	the calculated spatial unit based on the relationship
 	 */
-	void	setCoreValues(	std::string relationship			= "", 
-							std::string relComment				= "",
-							bool isCompoundRelationship			= false, 
-							double itemQuantity 				= 0.0, 
-							double spatialQuantity				= 0.0, 
-							SpatialExponentValue spatialUnit 	= SpatialExponentValue::None
-						);
+	void addRelationshipValues(	const std::string& relationship				= "", 
+								const std::string& relComment				= "",
+								const bool& isCompoundRelationship			= false, 
+								const double& itemQuantity 					= 0.0, 
+								const double& spatialQuantity				= 0.0, 
+								const SpatialExponentValue& spatialUnit 	= SpatialExponentValue::None
+							);
 };

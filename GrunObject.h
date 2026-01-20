@@ -199,10 +199,17 @@ class GrunObject
     static int 					asInt(SpatialExponentValue unit);
 
 
-	bool			addGrunItem(std::string name,						std::string relationship, 
-								std::string quantityFormula = "",		std::string units = "unit(s)", 
-								std::string primaryLabourFormula = ""
+	bool			addGrunItem( std::string name,
+								 std::string relationship, 
+								 std::string quantityFormula = "",
+								 std::string units = "unit(s)", 
+								 std::string primaryLabourFormula = ""
 							   );
+
+	bool			addGrunItemRelationship( GrunItem&			item,
+											 const std::string& relationship	= "", 
+											 const std::string& relComment		= ""
+											);
 
 
 	// int				calculateGrunObjectTotals();	// temporarily commented out. needs to support GrunItem::_relationship being a std::vector

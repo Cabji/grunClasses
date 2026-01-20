@@ -240,6 +240,12 @@ bool GrunObject::addGrunItem(std::string name, std::string relationship, std::st
 	return true;
 }
 
+bool GrunObject::addGrunItemRelationship(GrunItem& item, const std::string &relationship, const std::string &relComment)
+{
+	item.addRelationshipValues(relationship, relComment);
+	return false;
+}
+
 /**
  * @brief Calculates the aspect ratio of the GrunObject (if possible). Bases the aspect ratio calculation on the GrunObject's AreaType value.
  * @return The ratio of the longer side to the shorter side as a double (e.g., 1.5 for a 3x2 shape).
@@ -390,9 +396,9 @@ std::string GrunObject::getGrunItemListInfoAsString(const std::string dateFormat
 		returnVal += std::format("Rel: {:<12} ",osRelationship.substr(0,12)) + 			 
 					 std::format("{:<9}","SQ: ") + 
 					 std::format("{:<9} ",osSpatialQty) +
-					 std::format("SU:{:<11} ",osSpatialUnit + 
+					 std::format("SU:{:<11} ",osSpatialUnit) + 
 					 std::format("{:<10}","Item.Qty: ") + 
-					 std::format("{:<9} ",osItemQty +
+					 std::format("{:<9} ",osItemQty) +
 					 std::format("{:<8} ",item._itemQuantityUnits.substr(0,8)) +
 					 std::format("(R:{:>7.2f}) ",item._itemQuantityRounded) +
 					 std::format("{:<10} ","P.Labour:") + 
@@ -659,8 +665,9 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 	bool foundARelationship = false;
 	// since GrunItem's can have arbitrary number of relationship strings, they are stored in a std::vector<std::string>
 	// loop the _relationship vector and handle each relationship the item has
-	for (std::string relationship : item._relationship)
+	for (const ReationshipValues& coreValueSet : item._itemCoreValues)
 	{
+		std::string	relationship	= coreValueSet.relationship;
 		// zero-check and continue to skip relationship if it is empty
 		std::string	baseExpr		= "";
 		// get the base expression (anything before the last occurence of an @ char, or the whole string)
@@ -823,8 +830,9 @@ bool GrunObject::interpretGrunItemItemQuantity(GrunItem &item)
 	// zero-check
 	if (item._relationship.empty()) return false;
 
-	for (std::string relationship : item._relationship)
+	for (ReationshipValues& coreValueSet : item._itemCoreValues)
 	{
+		std::string	relationship	= coreValueSet.relationship;
 		std::erase_if(relationship, [](char c) { return std::isspace(static_cast<unsigned char>(c)); });			// strip whitespace
 		//relationship	= std::regex_replace(relationship, REGEX_SHN_TO_PEDMAS_0_WRAP_ALL_IN_PARENTHESES, "($1)");
 		relationship	= std::regex_replace(relationship, REGEX_SHN_TO_PEDMAS_1_EXPLICIT_COMBINE_OPERATOR, ")$1(");
