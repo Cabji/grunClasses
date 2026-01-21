@@ -17,7 +17,7 @@ int main ()
 	slab.addGrunItem("Kahnkreet",{"V"},"","m3","/ 2.5");
 	slab.addGrunItem("Labour - Secondary", {"1"}, "", "hour(s)", "");
 	slab.addGrunItem("Dowel R12 450 HDG",{"5L@0.6"},"","bar(s)","/ 14");
-	slab.addGrunItem("N12 6000", {"2L2W", "1.2*1L@0.4"}, "/5.4", "length(s)", "");
+	slab.addGrunItem("N12 6000", "2L2W", "/5.4", "length(s)", "");
 
 	std::string find = "";
 	std::print("Item '{}' was found in location(s): ", find);
