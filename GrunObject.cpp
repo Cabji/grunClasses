@@ -254,9 +254,11 @@ int GrunObject::addGrunItemRelationship(GrunItem& item, const std::string &relat
  * @param	useExactSearch	(bool)					- toggles if we should match the findItemName string exactly or not (default: true). If this is set to false, the findItemName string can be used to find itemNames that CONTAIN findItemName, or * and ? wildcard chars can be used for broader searching options.
  * @return	vector of ints	(std::vector<size_t>)	- returns a vector of unsigned integers that represent any locations in the m_items vector that have matching item names
  */
-std::vector<size_t> GrunObject::findGrunItemByItemNameExact(std::string findItemName, bool useExactSearch) const
+std::vector<size_t> GrunObject::findGrunItemByItemName(std::string findItemName, bool useExactSearch) const
 {
 	std::vector<size_t>	indices;
+	if (findItemName.empty()) { return indices; }
+
 	std::string			pattern		= findItemName;
 
 	// dev-note: '*' is wildcard character and '?' is match a single character

@@ -9,6 +9,9 @@ Example: N12 6000 stock bars
 we have added the RelationshipValues structure to do this. a std::vector holds the RelationshipValues objects, so we can access them 
 using integer index values.
 
+*** continue building the RelationshipValues vector into the project. we need setters/getters etc. to allow handling GrunItems with 
+multiple relationship sets.
+
 ---
 
 totalling

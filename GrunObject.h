@@ -213,7 +213,7 @@ class GrunObject
 											);
 
 
-	std::vector<size_t>	findGrunItemByItemNameExact(std::string findItemName, bool useExactSearch = true) const;
+	std::vector<size_t>	findGrunItemByItemName(std::string findItemName, bool useExactSearch = true) const;
 	// int				calculateGrunObjectTotals();	// temporarily commented out. needs to support GrunItem::_relationship being a std::vector
     double 				getAspectRatio();
 	std::string			getGrunItemListInfoAsString(const std::string dateFormat = "%d/%m/%Y");

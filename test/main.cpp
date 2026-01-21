@@ -18,6 +18,19 @@ int main ()
 	slab.addGrunItem("Labour - Secondary", {"1"}, "", "hour(s)", "");
 	slab.addGrunItem("Dowel R12 450 HDG",{"5L@0.6"},"","bar(s)","/ 14");
 	slab.addGrunItem("N12 6000", {"2L2W", "1.2*1L@0.4"}, "/5.4", "length(s)", "");
+
+	std::string find = "";
+	std::print("Item '{}' was found in location(s): ", find);
+	auto matchedIndices = slab.findGrunItemByItemName(find, false);
+	if (matchedIndices.empty()) { std::println("none found."); }
+	else
+	{
+		for (size_t index : matchedIndices)
+		{
+			std::print("{}, ",index);
+		}
+		std::println();
+	}
 	
 	std::println("GrunObject's details: Name: {}\n\tLength: {}\tWidth: {}\tDepth: {}\tArea: {}",slab.getObjectName(),slab.getObjectProperty("length"),slab.getObjectProperty("width"),slab.getObjectProperty("depth"),slab.getObjectProperty("area"));
 	std::println("GrunObject [{}] Item List information:\n{}", slab.getObjectName(), slab.getGrunItemListInfoAsString("%Y%m%d %H%M%S"));
