@@ -1,3 +1,4 @@
+#include <optional>
 #include <unordered_map>
 #include <string>
 #include <vector>
@@ -206,21 +207,22 @@ class GrunObject
 								 std::string primaryLabourFormula = ""
 							   );
 
-	bool			addGrunItemRelationship( GrunItem&			item,
+	int				addGrunItemRelationship( GrunItem&			item,
 											 const std::string& relationship	= "", 
 											 const std::string& relComment		= ""
 											);
 
 
+	std::vector<size_t>	findGrunItemByItemNameExact(std::string findItemName, bool useExactSearch = true) const;
 	// int				calculateGrunObjectTotals();	// temporarily commented out. needs to support GrunItem::_relationship being a std::vector
-    double 			getAspectRatio();
-	std::string		getGrunItemListInfoAsString(const std::string dateFormat = "%d/%m/%Y");
-	std::string		getGrunObjectTotalsInfoAsString() const;
-	std::string		getObjectName();
-	double			getObjectProperty(const std::string propertyName);
-	size_t 			removeGrunItem(const std::string& itemName, bool removeAll = false);
-	bool			removeGrunItem(size_t index);
-	size_t			removeGrunItem(std::vector<size_t> indices);
+    double 				getAspectRatio();
+	std::string			getGrunItemListInfoAsString(const std::string dateFormat = "%d/%m/%Y");
+	std::string			getGrunObjectTotalsInfoAsString() const;
+	std::string			getObjectName();
+	double				getObjectProperty(const std::string propertyName);
+	size_t 				removeGrunItem(const std::string& itemName, bool removeAll = false);
+	bool				removeGrunItem(size_t index);
+	size_t				removeGrunItem(std::vector<size_t> indices);
 
 	private:
 	std::string									m_name;					// the GrunObject's name

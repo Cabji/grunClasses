@@ -33,7 +33,17 @@ std::string spatialExponentValueToString(SpatialExponentValue exponent)
     }
 }
 
-void GrunItem::addRelationshipValues(	const std::string& relationship,
+/**
+ * @brief Adds a new set of RelationshipValues to the GrunItem. All arguments are optional.
+ * @param relationship				(std::string)			- the GrunItem's relationship string (default: empty)
+ * @param relComment				(std::string)			- this relationship's optional comment string (default: empty)
+ * @param isCompoundRelationship	(bool)					- gets calculated later (default: false)
+ * @param itemQuantity				(double)				- gets claculated later (default: 0.0)
+ * @param spatialQuantity			(double)				- gets claculated later (default: 0.0)
+ * @param spatialUnit				(SpatialExponentValue)	- gets claculated later (default: SpatialExponentValue::None)
+ * @return	(int) total number of relationships the GrunItem has after this new addition
+ */
+int GrunItem::addRelationshipValues(	const std::string& relationship,
 										const std::string& relComment,
 										const bool& isCompoundRelationship,
 										const double& itemQuantity,
@@ -41,7 +51,7 @@ void GrunItem::addRelationshipValues(	const std::string& relationship,
 										const SpatialExponentValue& spatialUnit
 									)
 {
-	// i guess in the future, we make need logic here to check if the relationship already exists?
+	// this method is *strictly* for ADDING a new RelationshipValues set to the GrunItem
 	ReationshipValues	newValues;
 	newValues.relationship				= relationship;
 	newValues.relComment				= relComment;
@@ -51,6 +61,7 @@ void GrunItem::addRelationshipValues(	const std::string& relationship,
 	newValues.spatialUnit				= spatialUnit;
 
 	this->_itemCoreValues.push_back(newValues);
+	return this->_itemCoreValues.size();
 }
 
 /**

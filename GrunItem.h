@@ -51,7 +51,7 @@ class GrunItem
 {
 	public:
 	std::string 							_itemName					= "";							// required value on construction
-	std::vector<ReationshipValues>					_itemCoreValues				= {};							// the core values in a GrunItem that must stay synced together
+	std::vector<ReationshipValues>			_itemCoreValues				= {};							// the core values in a GrunItem that must stay synced together
 	std::string								_relationship;												// the relationship will ultimately NOT be required on object creation, only the itemName is
 	std::string								_comment					= "";							// a comment hte end user can put in for the item
 
@@ -126,7 +126,7 @@ class GrunItem
 	 * @param	spatialQuantity			(double)		the calculated spatial quantity based on the relationship
 	 * @param	spatialUnit				(SpatialExponentValue)	the calculated spatial unit based on the relationship
 	 */
-	void addRelationshipValues(	const std::string& relationship				= "", 
+	int addRelationshipValues(	const std::string& relationship				= "", 
 								const std::string& relComment				= "",
 								const bool& isCompoundRelationship			= false, 
 								const double& itemQuantity 					= 0.0, 

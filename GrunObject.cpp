@@ -3,7 +3,6 @@
 #include <format>
 #include <functional>
 #include <iostream>
-#include <optional>
 #include <print>
 #include <ranges>
 #include <regex>
@@ -240,10 +239,67 @@ bool GrunObject::addGrunItem(std::string name, std::string relationship, std::st
 	return true;
 }
 
-bool GrunObject::addGrunItemRelationship(GrunItem& item, const std::string &relationship, const std::string &relComment)
+/**
+ * @brief Adds a new RelationshipValues set to a GrunItem
+ */
+int GrunObject::addGrunItemRelationship(GrunItem& item, const std::string &relationship, const std::string &relComment)
 {
-	item.addRelationshipValues(relationship, relComment);
-	return false;
+	// adds a new relationship set to the GrunItem and returns the new total number of relationships the GrunItem has
+	return item.addRelationshipValues(relationship, relComment);
+}
+
+/**
+ * @brief	Finds index location(s) of GrunItem(s) in m_items vector that have _itemNames matching findItemName argument
+ * @param	findItemName	(std::string)			- the item name to search for
+ * @param	useExactSearch	(bool)					- toggles if we should match the findItemName string exactly or not (default: true). If this is set to false, the findItemName string can be used to find itemNames that CONTAIN findItemName, or * and ? wildcard chars can be used for broader searching options.
+ * @return	vector of ints	(std::vector<size_t>)	- returns a vector of unsigned integers that represent any locations in the m_items vector that have matching item names
+ */
+std::vector<size_t> GrunObject::findGrunItemByItemNameExact(std::string findItemName, bool useExactSearch) const
+{
+	std::vector<size_t>	indices;
+	std::string			pattern		= findItemName;
+
+	// dev-note: '*' is wildcard character and '?' is match a single character
+	// if useExactSearch == true, wrap findItemName in ^ and $ to match the exact string
+	std::string			regexStr	= "";
+
+	// convert any wildcard chars (* and ?) to regex equiv.s and escape any other regex significant chars
+	for (char c : pattern) {
+        if (c == '*') regexStr += ".*";
+        else if (c == '?') regexStr += ".";
+        else if (std::string(".+^$|()[]{}").find(c) != std::string::npos) {
+            regexStr += "\\"; // Escape standard regex special chars
+            regexStr += c;
+        }
+        else regexStr += c;
+    }
+
+	if (useExactSearch && pattern.find('*') == std::string::npos && pattern.find('?') == std::string::npos)
+	{
+		// if using exact search AND no wildcards are found, just do simple string comparison to check the matching
+		for (size_t i = 0; i < m_items.size(); ++i)
+		{
+			if (m_items[i]._itemName == findItemName)
+			{
+				indices.push_back(i);
+			}
+		}
+		return indices;
+	}
+
+	// wrap regex string with ^ and $ if useExactSearch == true
+	if (useExactSearch) regexStr = "^" + regexStr + "$";
+
+	std::regex query(regexStr, std::regex_constants::icase);	// does case insensitive search
+
+	for (size_t i = 0; i < m_items.size(); ++i)
+	{
+		if (std::regex_search(m_items[i]._itemName, query))
+		{
+			indices.push_back(i);
+		}
+	}
+	return indices;
 }
 
 /**
@@ -251,7 +307,7 @@ bool GrunObject::addGrunItemRelationship(GrunItem& item, const std::string &rela
  * @return The ratio of the longer side to the shorter side as a double (e.g., 1.5 for a 3x2 shape).
  * @throws std::invalid_argument if either dimension is zero, negative, or invalid.
  */
-double GrunObject::getAspectRatio() 
+double GrunObject::getAspectRatio()
 { 
 	return m_aspectRatio; 
 }
