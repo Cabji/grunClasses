@@ -240,12 +240,22 @@ bool GrunObject::addGrunItem(std::string name, std::string relationship, std::st
 }
 
 /**
- * @brief Adds a new RelationshipValues set to a GrunItem
+ * @brief Adds a new RelationshipValues set to a referenced GrunItem
  */
 size_t GrunObject::addGrunItemRelationship(GrunItem& item, const std::string &relationship, const std::string &relComment)
 {
 	// adds a new relationship set to the GrunItem and returns the new total number of relationships the GrunItem has
 	return item.addRelationshipValues(relationship, relComment);
+}
+
+/**
+ * @brief Removes an existing RelationshipValues set from the referenced GrunItem
+ * 
+ */
+size_t GrunObject::rmGrunItemRelationship(GrunItem &item, const std::string &relationship, const std::string &relComment)
+{
+
+	return size_t();
 }
 
 /**
@@ -302,6 +312,27 @@ std::vector<size_t> GrunObject::findGrunItemByItemName(std::string findItemName,
 		}
 	}
 	return indices;
+}
+
+std::vector<size_t> GrunObject::findRelationshipByStrings(const size_t itemIndex, const std::string &relationship, const std::string &relComment, const bool useExacatSearch) const
+{
+	std::vector<size_t> indices;
+
+	// check if we're just looking for empty values first
+	if (relationship.empty() && relComment.empty())
+	{
+		// there's nothing to search for, just look for any entries with empty relatiosnhip and relComment and return their indices
+		for (size_t i = 0; i < m_items[itemIndex]._itemCoreValues.size(); ++i)
+		{
+			if (m_items[itemIndex]._itemCoreValues[i].relationship.empty() && m_items[itemIndex]._itemCoreValues[i].relComment.empty())
+			{
+				indices.push_back(i);
+			}
+		}
+	}
+
+	std::string	pattern	= relationship;
+	return std::vector<size_t>();
 }
 
 /**
