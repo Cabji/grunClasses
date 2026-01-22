@@ -242,7 +242,7 @@ bool GrunObject::addGrunItem(std::string name, std::string relationship, std::st
 /**
  * @brief Adds a new RelationshipValues set to a GrunItem
  */
-int GrunObject::addGrunItemRelationship(GrunItem& item, const std::string &relationship, const std::string &relComment)
+size_t GrunObject::addGrunItemRelationship(GrunItem& item, const std::string &relationship, const std::string &relComment)
 {
 	// adds a new relationship set to the GrunItem and returns the new total number of relationships the GrunItem has
 	return item.addRelationshipValues(relationship, relComment);
@@ -312,6 +312,15 @@ std::vector<size_t> GrunObject::findGrunItemByItemName(std::string findItemName,
 double GrunObject::getAspectRatio()
 { 
 	return m_aspectRatio; 
+}
+
+GrunItem& GrunObject::getGrunItemByIndex(const int index)
+{
+	if (index >= m_items.size())
+	{ 
+		throw std::out_of_range("GrunObject::getGrunItemByIndex(): Index out of bounds - index = " + index);
+	}
+	else { return m_items[index]; }
 }
 
 /**

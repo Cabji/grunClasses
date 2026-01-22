@@ -207,15 +207,16 @@ class GrunObject
 								 std::string primaryLabourFormula = ""
 							   );
 
-	int				addGrunItemRelationship( GrunItem&			item,
-											 const std::string& relationship	= "", 
-											 const std::string& relComment		= ""
-											);
+	size_t				addGrunItemRelationship(GrunItem&			item,
+												const std::string&	relationship	= "", 
+												const std::string&	relComment		= ""
+												);
 
 
 	std::vector<size_t>	findGrunItemByItemName(std::string findItemName, bool useExactSearch = true) const;
 	// int				calculateGrunObjectTotals();	// temporarily commented out. needs to support GrunItem::_relationship being a std::vector
     double 				getAspectRatio();
+	GrunItem&			getGrunItemByIndex(const int index);
 	std::string			getGrunItemListInfoAsString(const std::string dateFormat = "%d/%m/%Y");
 	std::string			getGrunObjectTotalsInfoAsString() const;
 	std::string			getObjectName();

@@ -43,7 +43,7 @@ std::string spatialExponentValueToString(SpatialExponentValue exponent)
  * @param spatialUnit				(SpatialExponentValue)	- gets claculated later (default: SpatialExponentValue::None)
  * @return	(int) total number of relationships the GrunItem has after this new addition
  */
-int GrunItem::addRelationshipValues(	const std::string& relationship,
+size_t GrunItem::addRelationshipValues(	const std::string& relationship,
 										const std::string& relComment,
 										const bool& isCompoundRelationship,
 										const double& itemQuantity,

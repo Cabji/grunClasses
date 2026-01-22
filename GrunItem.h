@@ -126,11 +126,11 @@ class GrunItem
 	 * @param	spatialQuantity			(double)		the calculated spatial quantity based on the relationship
 	 * @param	spatialUnit				(SpatialExponentValue)	the calculated spatial unit based on the relationship
 	 */
-	int addRelationshipValues(	const std::string& relationship				= "", 
-								const std::string& relComment				= "",
-								const bool& isCompoundRelationship			= false, 
-								const double& itemQuantity 					= 0.0, 
-								const double& spatialQuantity				= 0.0, 
-								const SpatialExponentValue& spatialUnit 	= SpatialExponentValue::None
-							);
+	size_t addRelationshipValues(	const std::string& relationship				= "", 
+									const std::string& relComment				= "",
+									const bool& isCompoundRelationship			= false, 
+									const double& itemQuantity 					= 0.0, 
+									const double& spatialQuantity				= 0.0, 
+									const SpatialExponentValue& spatialUnit 	= SpatialExponentValue::None
+								);
 };

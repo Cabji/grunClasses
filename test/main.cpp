@@ -18,19 +18,26 @@ int main ()
 	slab.addGrunItem("Labour - Secondary", {"1"}, "", "hour(s)", "");
 	slab.addGrunItem("Dowel R12 450 HDG",{"5L@0.6"},"","bar(s)","/ 14");
 	slab.addGrunItem("N12 6000", "2L2W", "/5.4", "length(s)", "");
-
-	std::string find = "";
+	
+	// search for an item, get any index resluts
+	std::string find = "N12 6000";
 	std::print("Item '{}' was found in location(s): ", find);
-	auto matchedIndices = slab.findGrunItemByItemName(find, false);
+	auto matchedIndices = slab.findGrunItemByItemName(find);
 	if (matchedIndices.empty()) { std::println("none found."); }
 	else
 	{
+		// iterate through the indices found
 		for (size_t index : matchedIndices)
 		{
 			std::print("{}, ",index);
+			GrunItem&	foundItem = slab.getGrunItemByIndex(index);
+			// get the needed GrunItem and pass it to addGrunItemRelationship (write the GrunObect::GetGrunItem function...)
+			std::println("There are now {} relationships in item '{}'",slab.addGrunItemRelationship(foundItem, "3.0*2L@0.4", "X1: Extra Bars, Straights, 3.0m (3.0*2L@0.4)"), find);
+			std::println();
 		}
 		std::println();
 	}
+
 	
 	std::println("GrunObject's details: Name: {}\n\tLength: {}\tWidth: {}\tDepth: {}\tArea: {}",slab.getObjectName(),slab.getObjectProperty("length"),slab.getObjectProperty("width"),slab.getObjectProperty("depth"),slab.getObjectProperty("area"));
 	std::println("GrunObject [{}] Item List information:\n{}", slab.getObjectName(), slab.getGrunItemListInfoAsString("%Y%m%d %H%M%S"));
