@@ -64,6 +64,23 @@ size_t GrunItem::addRelationshipValues(	const std::string& relationship,
 	return this->_itemCoreValues.size();
 }
 
+/** 
+ * @brief Removes a RelationshipValues from the _itemCoreValues vector by index value
+ */
+size_t GrunItem::rmRelationshipValues(const int index)
+{
+	if (index >= this->_itemCoreValues.size())
+	{
+		return 0;
+	}
+	if (index >= 0 && index < this->_itemCoreValues.size())
+	{
+		this->_itemCoreValues.erase(this->_itemCoreValues.begin() + index);
+		return this->_itemCoreValues.size();
+	}
+	return size_t();
+}
+
 /**
  * @brief Converts a GrunItem's time-typed member to user-friendly date/time string, returned in optional format
  * @param member 	- the time-typed member in the GrunItem we want to retrieve (required)

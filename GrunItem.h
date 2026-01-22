@@ -133,4 +133,6 @@ class GrunItem
 									const double& spatialQuantity				= 0.0, 
 									const SpatialExponentValue& spatialUnit 	= SpatialExponentValue::None
 								);
+
+	size_t	rmRelationshipValues(	const int	index);
 };
