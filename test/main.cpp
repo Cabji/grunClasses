@@ -23,6 +23,7 @@ int main ()
 	std::string find = "N12 6000";
 	std::print("Item '{}' was found in location(s): ", find);
 	auto matchedIndices = slab.findGrunItemByItemName(find);
+
 	if (matchedIndices.empty()) { std::println("none found."); }
 	else
 	{

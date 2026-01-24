@@ -211,9 +211,20 @@ class GrunObject
 												const std::string&	relationship	= "", 
 												const std::string&	relComment		= ""
 												);
+	size_t				rmGrunItemRelationship(	GrunItem&			item,
+												const std::string& relationship		= "",
+												const std::string& relComment		= ""
+												);
 
 
-	std::vector<size_t>	findGrunItemByItemName(std::string findItemName, bool useExactSearch = true) const;
+	std::vector<size_t>	findGrunItemByItemName(	const std::string& findItemName, 
+												bool useExactSearch = true
+											  ) const;
+	std::vector<size_t>	findRelationshipByStrings(	const size_t itemIndex,
+													const std::string& relationship,
+													const std::string& relComment,
+													const bool useExactSearch = true
+												 ) const;
 	// int				calculateGrunObjectTotals();	// temporarily commented out. needs to support GrunItem::_relationship being a std::vector
     double 				getAspectRatio();
 	GrunItem&			getGrunItemByIndex(const int index);

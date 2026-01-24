@@ -264,28 +264,15 @@ size_t GrunObject::rmGrunItemRelationship(GrunItem &item, const std::string &rel
  * @param	useExactSearch	(bool)					- toggles if we should match the findItemName string exactly or not (default: true). If this is set to false, the findItemName string can be used to find itemNames that CONTAIN findItemName, or * and ? wildcard chars can be used for broader searching options.
  * @return	vector of ints	(std::vector<size_t>)	- returns a vector of unsigned integers that represent any locations in the m_items vector that have matching item names
  */
-std::vector<size_t> GrunObject::findGrunItemByItemName(std::string findItemName, bool useExactSearch) const
+std::vector<size_t> GrunObject::findGrunItemByItemName(const std::string& findItemName, bool useExactSearch) const
 {
 	std::vector<size_t>	indices;
 	if (findItemName.empty()) { return indices; }
 
 	std::string			pattern		= findItemName;
+	std::string			regexStr	= cabji::wildcardsToRegexReady(pattern, useExactSearch);
 
-	// dev-note: '*' is wildcard character and '?' is match a single character
-	// if useExactSearch == true, wrap findItemName in ^ and $ to match the exact string
-	std::string			regexStr	= "";
-
-	// convert any wildcard chars (* and ?) to regex equiv.s and escape any other regex significant chars
-	for (char c : pattern) {
-        if (c == '*') regexStr += ".*";
-        else if (c == '?') regexStr += ".";
-        else if (std::string(".+^$|()[]{}").find(c) != std::string::npos) {
-            regexStr += "\\"; // Escape standard regex special chars
-            regexStr += c;
-        }
-        else regexStr += c;
-    }
-
+	// find matching indices using straight string comparison (exact search)
 	if (useExactSearch && pattern.find('*') == std::string::npos && pattern.find('?') == std::string::npos)
 	{
 		// if using exact search AND no wildcards are found, just do simple string comparison to check the matching
@@ -299,11 +286,8 @@ std::vector<size_t> GrunObject::findGrunItemByItemName(std::string findItemName,
 		return indices;
 	}
 
-	// wrap regex string with ^ and $ if useExactSearch == true
-	if (useExactSearch) regexStr = "^" + regexStr + "$";
-
+	// find matching indices using broader regex search
 	std::regex query(regexStr, std::regex_constants::icase);	// does case insensitive search
-
 	for (size_t i = 0; i < m_items.size(); ++i)
 	{
 		if (std::regex_search(m_items[i]._itemName, query))
@@ -314,7 +298,15 @@ std::vector<size_t> GrunObject::findGrunItemByItemName(std::string findItemName,
 	return indices;
 }
 
-std::vector<size_t> GrunObject::findRelationshipByStrings(const size_t itemIndex, const std::string &relationship, const std::string &relComment, const bool useExacatSearch) const
+/**
+ * @brief Search for entries in a GrunItem's _itemCoreValues vector that have a relationship matching the parameters supplied
+ * @param itemIndex			(size_t)		- the index location of the GrunItem in the GrunObject's m_items vector
+ * @param relationship		(std::string)	- the relationship string to search for
+ * @param relComment		(std::string)	- the relationship comment to search for
+ * @param useExactSearch	(bool)			- toggle using broad or exact search (default: true - uses exact searching)
+ * @note finding a relationship can be based on either the relationship string, the comment string, or both as the relationship string can be empty
+ */
+std::vector<size_t> GrunObject::findRelationshipByStrings(const size_t itemIndex, const std::string &relationship, const std::string &relComment, const bool useExactSearch) const
 {
 	std::vector<size_t> indices;
 
@@ -331,8 +323,39 @@ std::vector<size_t> GrunObject::findRelationshipByStrings(const size_t itemIndex
 		}
 	}
 
-	std::string	pattern	= relationship;
-	return std::vector<size_t>();
+	std::string	relPattern		= relationship;
+	std::string	commentPattern	= relComment;
+	std::string	relRegexStr		= cabji::wildcardsToRegexReady(relPattern, useExactSearch);
+	std::string	commentRegexStr	= cabji::wildcardsToRegexReady(commentPattern, useExactSearch);
+
+	// find matching indices using straight string comparison (exact search)
+	if (	useExactSearch && relPattern.find('*') == std::string::npos && relPattern.find('?') == std::string::npos
+		&&	useExactSearch && commentPattern.find('*') == std::string::npos && commentPattern.find('?') == std::string::npos)
+	{
+		// if using exact search AND no wildcards are found, just do simple string comparison to check the matching
+		for (size_t i = 0; i < m_items[itemIndex]._itemCoreValues.size(); ++i)
+		{
+			if (	m_items[itemIndex]._itemCoreValues[i].relationship == relationship
+				||	m_items[itemIndex]._itemCoreValues[i].relComment == relComment)
+			{
+				indices.push_back(i);
+			}
+		}
+		return indices;
+	}
+
+	// find matching indices using broader regex search
+	std::regex relationshipQuery(relRegexStr, std::regex_constants::icase);				// does case insensitive search
+	std::regex commentQuery(commentRegexStr, std::regex_constants::icase);
+	for (size_t i = 0; i < m_items[itemIndex]._itemCoreValues.size(); ++i)
+	{
+		if (	std::regex_search(m_items[itemIndex]._itemCoreValues[i].relationship, relationshipQuery)
+			||	std::regex_search(m_items[itemIndex]._itemCoreValues[i].relComment, commentQuery))
+		{
+			indices.push_back(i);
+		}
+	}
+	return indices;
 }
 
 /**
