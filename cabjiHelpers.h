@@ -45,4 +45,23 @@ namespace cabji
 
         return report;
     }
+
+	std::string	wildcardsToRegexReady(const std::string& str, const bool& useExactSearch = true)
+	{
+		// dev-note: '*' is wildcard character and '?' is match a single character
+		std::string	regexStr	= "";
+
+		// convert any wildcard chars (* and ?) to regex equiv.s and escape any other regex significant chars
+		for (char c : str) {
+			if (c == '*') regexStr += ".*";
+			else if (c == '?') regexStr += ".";
+			else if (std::string(".+^$|()[]{}").find(c) != std::string::npos) {
+				regexStr += "\\"; // Escape standard regex special chars
+				regexStr += c;
+			}
+			else regexStr += c;
+		}
+		if (useExactSearch) regexStr = "^" + regexStr + "$";
+		return regexStr;
+	}
 }
