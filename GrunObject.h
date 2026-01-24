@@ -201,7 +201,8 @@ class GrunObject
 
 
 	bool			addGrunItem( std::string name,
-								 std::string relationship, 
+								 std::string relationship = "", 
+								 std::string relComment = "",
 								 std::string quantityFormula = "",
 								 std::string units = "unit(s)", 
 								 std::string primaryLabourFormula = ""

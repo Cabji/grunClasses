@@ -230,10 +230,10 @@ int GrunObject::asInt(SpatialExponentValue unit) {
  * @param primaryLabourFormula formula applied to quantity of this Item to calculate Primary Labour quantity (empty by default)
  * @return true if successful, false if failure.
  */
-bool GrunObject::addGrunItem(std::string name, std::string relationship, std::string quantityFormula, std::string units, std::string primaryLabourFormula)
+bool GrunObject::addGrunItem(std::string name, std::string relationship, std::string relComment, std::string quantityFormula, std::string units, std::string primaryLabourFormula)
 {
 	// zero check
-	GrunItem newItem(name, relationship, quantityFormula, units, primaryLabourFormula);
+	GrunItem newItem(name, relationship, relComment, quantityFormula, units, primaryLabourFormula);
 	calculateGrunItemData(newItem);
 	m_items.emplace_back(newItem);
 	return true;
