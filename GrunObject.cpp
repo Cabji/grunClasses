@@ -308,19 +308,24 @@ std::vector<size_t> GrunObject::findGrunItemByItemName(const std::string& findIt
  */
 std::vector<size_t> GrunObject::findRelationshipByStrings(const size_t itemIndex, const std::string &relationship, const std::string &relComment, const bool useExactSearch) const
 {
-	std::vector<size_t> indices;
+	// out of bounds check
+	if (itemIndex >= m_items.size()) { return {}; }
 
+	std::vector<size_t> indices;
+	const std::vector<RelationshipValues>& coreValues = m_items[itemIndex]._itemCoreValues;
+	
 	// check if we're just looking for empty values first
 	if (relationship.empty() && relComment.empty())
 	{
 		// there's nothing to search for, just look for any entries with empty relatiosnhip and relComment and return their indices
-		for (size_t i = 0; i < m_items[itemIndex]._itemCoreValues.size(); ++i)
+		for (size_t i = 0; i < coreValues.size(); ++i)
 		{
-			if (m_items[itemIndex]._itemCoreValues[i].relationship.empty() && m_items[itemIndex]._itemCoreValues[i].relComment.empty())
+			if (coreValues[i].relationship.empty() && coreValues[i].relComment.empty())
 			{
 				indices.push_back(i);
 			}
 		}
+		return indices;	// return early to skip the regex processing
 	}
 
 	std::string	relPattern		= relationship;
@@ -329,28 +334,31 @@ std::vector<size_t> GrunObject::findRelationshipByStrings(const size_t itemIndex
 	std::string	commentRegexStr	= cabji::wildcardsToRegexReady(commentPattern, useExactSearch);
 
 	// find matching indices using straight string comparison (exact search)
-	if (	useExactSearch && relPattern.find('*') == std::string::npos && relPattern.find('?') == std::string::npos
-		&&	useExactSearch && commentPattern.find('*') == std::string::npos && commentPattern.find('?') == std::string::npos)
+	bool hasWildcards	= relationship.find_first_of("*?") != std::string::npos
+						  || relComment.find_first_of("*?") != std::string::npos;
+
+	// if using exact search AND no wildcards are found, just do simple string comparison to check the matching
+	if (useExactSearch && !hasWildcards)
 	{
-		// if using exact search AND no wildcards are found, just do simple string comparison to check the matching
-		for (size_t i = 0; i < m_items[itemIndex]._itemCoreValues.size(); ++i)
+		for (size_t i = 0; i < coreValues.size(); ++i)
 		{
-			if (	m_items[itemIndex]._itemCoreValues[i].relationship == relationship
-				||	m_items[itemIndex]._itemCoreValues[i].relComment == relComment)
-			{
-				indices.push_back(i);
-			}
+			// only match is the search term is not empty, and matches exactly
+			bool relMatch = !relationship.empty()	&& coreValues[i].relationship == relationship;
+			bool comMatch = !relComment.empty()		&& coreValues[i].relComment == relComment;
+			if (relMatch || comMatch) {	indices.push_back(i);}
 		}
 		return indices;
 	}
 
-	// find matching indices using broader regex search
-	std::regex relationshipQuery(relRegexStr, std::regex_constants::icase);				// does case insensitive search
-	std::regex commentQuery(commentRegexStr, std::regex_constants::icase);
-	for (size_t i = 0; i < m_items[itemIndex]._itemCoreValues.size(); ++i)
+	// find matching indices using broader regex/wilcard search
+	std::regex relRegex(cabji::wildcardsToRegexReady(relationship, useExactSearch), std::regex_constants::icase);				// does case insensitive search
+	std::regex comRegex(cabji::wildcardsToRegexReady(relComment, useExactSearch), std::regex_constants::icase);
+	for (size_t i = 0; i < coreValues.size(); ++i)
 	{
-		if (	std::regex_search(m_items[itemIndex]._itemCoreValues[i].relationship, relationshipQuery)
-			||	std::regex_search(m_items[itemIndex]._itemCoreValues[i].relComment, commentQuery))
+		// logic: only run the regex_search if the search parameter was provided
+		bool	relMatch	= !relationship.empty()	&& std::regex_search(coreValues[i].relationship, relRegex);
+		bool	comMatch	= !relComment.empty()	&& std::regex_search(coreValues[i].relComment, comRegex);
+		if (relMatch || comMatch)
 		{
 			indices.push_back(i);
 		}
@@ -786,7 +794,7 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 	bool foundARelationship = false;
 	// since GrunItem's can have arbitrary number of relationship strings, they are stored in a std::vector<std::string>
 	// loop the _relationship vector and handle each relationship the item has
-	for (const ReationshipValues& coreValueSet : item._itemCoreValues)
+	for (const RelationshipValues& coreValueSet : item._itemCoreValues)
 	{
 		std::string	relationship	= coreValueSet.relationship;
 		// zero-check and continue to skip relationship if it is empty
@@ -951,7 +959,7 @@ bool GrunObject::interpretGrunItemItemQuantity(GrunItem &item)
 	// zero-check
 	if (item._relationship.empty()) return false;
 
-	for (ReationshipValues& coreValueSet : item._itemCoreValues)
+	for (RelationshipValues& coreValueSet : item._itemCoreValues)
 	{
 		std::string	relationship	= coreValueSet.relationship;
 		std::erase_if(relationship, [](char c) { return std::isspace(static_cast<unsigned char>(c)); });			// strip whitespace

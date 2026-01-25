@@ -52,7 +52,7 @@ size_t GrunItem::addRelationshipValues(	const std::string& relationship,
 									)
 {
 	// this method is *strictly* for ADDING a new RelationshipValues set to the GrunItem
-	ReationshipValues	newValues;
+	RelationshipValues	newValues;
 	newValues.relationship				= relationship;
 	newValues.relComment				= relComment;
 	newValues.isCompoundRelationship	= isCompoundRelationship;

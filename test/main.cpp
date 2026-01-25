@@ -41,12 +41,12 @@ int main ()
 	}
 
 	std::string commentSearch = "extra bars";
-	matchedIndices = slab.findRelationshipByStrings(11,"",commentSearch,false);
+	auto matchedRelIndices = slab.findRelationshipByStrings(11,"",commentSearch,false);
 	std::println("Comment '{}' was found in: ",commentSearch);
-	if (matchedIndices.empty()) { std::println("no relationship sets."); }
+	if (matchedRelIndices.empty()) { std::println("no relationship sets."); }
 	else
 	{
-		for (size_t index : matchedIndices)
+		for (size_t index : matchedRelIndices)
 		{
 			std::print("{}, ",index);
 		}

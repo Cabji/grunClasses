@@ -24,7 +24,7 @@ std::string spatialExponentValueToString(SpatialExponentValue exponent);
  * @brief RelationshipValues struct are the members in Grunitem that are all linked together via the Item's relationship.
  * @note Because we need to support Items having multiple relationships, this struct will help us keep all members that are influenced by the item's relationship in a neat unit.
  */
-struct ReationshipValues
+struct RelationshipValues
 {
 	std::string				relationship;
 	std::string				relComment;
@@ -51,7 +51,7 @@ class GrunItem
 {
 	public:
 	std::string 							_itemName					= "";							// required value on construction
-	std::vector<ReationshipValues>			_itemCoreValues				= {};							// the core values in a GrunItem that must stay synced together
+	std::vector<RelationshipValues>			_itemCoreValues				= {};							// the core values in a GrunItem that must stay synced together
 	std::string								_relationship;												// the relationship will ultimately NOT be required on object creation, only the itemName is
 	std::string								_comment					= "";							// a comment hte end user can put in for the item
 
