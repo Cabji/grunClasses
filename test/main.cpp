@@ -20,10 +20,10 @@ int main ()
 	slab.addGrunItem("Dowel R12 450 HDG","5L@0.6","","","bar(s)","/ 14");
 	slab.addGrunItem("N12 6000","2L2W","","/5.4","length(s)","");
 	
-	// search for an item, get any index resluts
-	std::string find = "N12 6000";
-	std::print("Item '{}' was found in location(s): ", find);
-	auto matchedIndices = slab.findGrunItemByItemName(find);
+	// search for an item, get any index results
+	std::string itemSearch = "N12 6000";
+	std::print("Item '{}' was found in location(s): ", itemSearch);
+	auto matchedIndices = slab.findGrunItemByItemName(itemSearch);
 
 	if (matchedIndices.empty()) { std::println("none found."); }
 	else
@@ -32,17 +32,18 @@ int main ()
 		for (size_t index : matchedIndices)
 		{
 			std::print("{}, ",index);
+			std::println();
 			GrunItem&	foundItem = slab.getGrunItemByIndex(index);
 			// get the needed GrunItem and pass it to addGrunItemRelationship (write the GrunObect::GetGrunItem function...)
-			std::println("There are now {} relationships in item '{}'",slab.addGrunItemRelationship(foundItem, "3.0*2L@0.4", "X1: Extra Bars, Straights, 3.0m (3.0*2L@0.4)"), find);
+			std::println("There are now {} relationships in item '{}'",slab.addGrunItemRelationship(foundItem, "3.0*2L@0.4", "X1: Extra Bars, Straights, 3.0m (3.0*2L@0.4)"), itemSearch);
 			std::println();
 		}
 		std::println();
 	}
 
 	std::string commentSearch = "extra bars";
-	auto matchedRelIndices = slab.findRelationshipByStrings(11,"",commentSearch,false);
-	std::println("Comment '{}' was found in: ",commentSearch);
+	auto matchedRelIndices = slab.findRelationshipByStrings(matchedIndices,"",commentSearch,false);
+	std::println("Searched m_items{}. Comment '{}' was found in: ", matchedIndices, commentSearch);
 	if (matchedRelIndices.empty()) { std::println("no relationship sets."); }
 	else
 	{

@@ -366,6 +366,20 @@ std::vector<size_t> GrunObject::findRelationshipByStrings(const size_t itemIndex
 	return indices;
 }
 
+std::vector<size_t> GrunObject::findRelationshipByStrings(const std::vector<size_t> itemIndices, const std::string &relationship, const std::string &relComment, const bool useExactSearch) const
+{
+	// zero-check
+	if (itemIndices.empty()) { return {}; }
+	std::vector<size_t>	indices;
+	// loop each index in itemIndices and pass the arguments to the overloaded version that does the grunt work
+	for (size_t index : itemIndices)
+	{
+		std::vector<size_t> newIndices = findRelationshipByStrings(index, relationship, relComment, useExactSearch);
+		std::ranges::copy(newIndices, std::back_inserter(indices));
+	}
+	return std::vector<size_t>();
+}
+
 /**
  * @brief Calculates the aspect ratio of the GrunObject (if possible). Bases the aspect ratio calculation on the GrunObject's AreaType value.
  * @return The ratio of the longer side to the shorter side as a double (e.g., 1.5 for a 3x2 shape).
