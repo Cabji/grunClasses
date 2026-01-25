@@ -165,6 +165,15 @@ inline std::string areaTypeToString(AreaType t)
     }
 }
 
+/**
+ * @brief A structure that houses index location results from a relationship/comment search on GrunItem's RelationshipValues vector
+ */
+struct RelationshipSearchResult
+{
+	size_t	itemIndex;			// index in GrunObject::m_items
+	size_t	relationshipIndex;	// index in GrunItem::_itemCoreValues
+};
+
 /** 
  * @class GrunObject
  * @brief A GrunObject creates a 3D geometric shape object in data (memory).
@@ -238,6 +247,7 @@ class GrunObject
 	std::string			getGrunObjectTotalsInfoAsString() const;
 	std::string			getObjectName();
 	double				getObjectProperty(const std::string propertyName);
+	size_t				getTotalOfGrunItems();
 	size_t 				removeGrunItem(const std::string& itemName, bool removeAll = false);
 	bool				removeGrunItem(size_t index);
 	size_t				removeGrunItem(std::vector<size_t> indices);
