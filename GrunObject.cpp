@@ -350,7 +350,7 @@ std::vector<size_t> GrunObject::findRelationshipByStrings(const size_t itemIndex
 		return indices;
 	}
 
-	// find matching indices using broader regex/wilcard search
+	// find matching indices using broader regex/wildcard search
 	std::regex relRegex(cabji::wildcardsToRegexReady(relationship, useExactSearch), std::regex_constants::icase);				// does case insensitive search
 	std::regex comRegex(cabji::wildcardsToRegexReady(relComment, useExactSearch), std::regex_constants::icase);
 	for (size_t i = 0; i < coreValues.size(); ++i)
@@ -377,7 +377,7 @@ std::vector<size_t> GrunObject::findRelationshipByStrings(const std::vector<size
 		std::vector<size_t> newIndices = findRelationshipByStrings(index, relationship, relComment, useExactSearch);
 		std::ranges::copy(newIndices, std::back_inserter(indices));
 	}
-	return std::vector<size_t>();
+	return indices;
 }
 
 /**
@@ -416,6 +416,11 @@ double GrunObject::getObjectProperty(const std::string propertyName)
 	if (propertyName == "depth")	{ return m_z; }
 	if (propertyName == "area") 	{ return m_area; }
 	return 0.0;
+}
+
+size_t GrunObject::getTotalOfGrunItems()
+{
+	return m_items.size();
 }
 
 /**
