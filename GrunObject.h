@@ -196,7 +196,7 @@ struct std::formatter<RelationshipSearchResult>
     auto format(const RelationshipSearchResult& r, std::format_context& ctx) const 
     {
         // write to the context's output buffer
-        return std::format_to(ctx.out(), "[{} => {}]", r.itemIndex, r.relationshipIndex);
+        return std::format_to(ctx.out(), "[Item: {} => Relationship: {}]", r.itemIndex, r.relationshipIndex);
     }
 };
 
