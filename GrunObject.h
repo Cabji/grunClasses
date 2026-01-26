@@ -1,3 +1,4 @@
+#include <format>
 #include <optional>
 #include <unordered_map>
 #include <string>
@@ -8,12 +9,9 @@
 #define CLASS_NAME "GrunObject"
 #endif
 
-/* GrunObject Class
-	dev-todo: 
-		1. flesh out GrunItem members (they are the columns from the inventory spreadsheet (Items))
-*/
-
-// assigns a Spatial Unit Value to GrunObject members
+/**
+ * @brief Assigns a numeric 'exponent' value to S.H.N. GrunObject Tokens. If you add additional GrunObject properties/tokens you would need to assign them an exponent value in this enum class' definition.
+ */
 enum class GrunObjectMemberSUV 
 {
 	L	= 1,
@@ -25,6 +23,9 @@ enum class GrunObjectMemberSUV
 	R	= 1
 };
 
+/**
+ * @brief Defines known, geometric shape types that a GrunObject can be assigned as, to decide how to calculate its dimensions. If you add more geometric shape types to the GrunObject class, you need to define them in this enum class definition.
+ */
 enum class ShapeType
 {
 	Unknown,
@@ -33,6 +34,9 @@ enum class ShapeType
 	Circle
 };
 
+/**
+ * @brief Defines which 'plane' the Area of a GrunObject should be calculated on. Horizontal is like a floor, Vertical is like a wall.
+ */
 enum class AreaType
 {
 	Unknown, 
@@ -40,29 +44,13 @@ enum class AreaType
 	Vertical
 };
 
+/**
+ * @brief Holds a "Total" value based on "unit". This is used for totalling calculated quantities for all GrunItems in a GrunObject that have a common unit of measure.
+ */
 struct TotalAndUnit
 {
 	double		_total 	= 0.0;
 	std::string	_unit	= "unit(s)";
-};
-
-
-// --- CUSTOM FORMATTER FOR TotalAndUnit ---
-// This allows TotalAndUnit to be used directly in std::format, std::println, etc.
-template <>
-struct std::formatter<TotalAndUnit> : std::formatter<std::string> 
-{
-    // Optionally hold formatting options here if you want to support {:#}, {:.2f}, etc.
-    // For simplicity, we delegate parsing to the string formatter.
-
-    auto format(const TotalAndUnit& t, std::format_context& ctx) const 
-    {
-        // Format the object into a simple string: "Total (Unit)"
-        std::string s = std::format("{:.3f} {}", t._total, t._unit); // Using {:.3f} for double precision
-        
-        // Pass the formatted string to the underlying string formatter
-        return std::formatter<std::string>::format(s, ctx);
-    }
 };
 
 /**
@@ -116,13 +104,23 @@ struct GrunObjectTotals
 
 /**
  * @brief	A struct that holds vetted data about a GrunObject's child items.
- * @note	This is used by the getter function that sends data bout the object's children out to calling code.
+ * @note	This is used by the getter function that sends data about the object's children out to calling code.
  */
 struct GrunItemSummary
 {
 	std::string	name;
 	double		quantity;
 	double		cost;
+};
+
+/**
+ * @struct RelationshipSearchResult
+ * @brief A structure that houses index location results from a relationship/comment search on GrunItem's RelationshipValues vector
+ */
+struct RelationshipSearchResult
+{
+	size_t	itemIndex;			// index in GrunObject::m_items
+	size_t	relationshipIndex;	// index in GrunItem::_itemCoreValues
 };
 
 // set the ShapeType from a string - NOTE: we must ensure the string is sanitized to all lowercase if the user inputs this value
@@ -166,23 +164,50 @@ inline std::string areaTypeToString(AreaType t)
 }
 
 /**
- * @brief A structure that houses index location results from a relationship/comment search on GrunItem's RelationshipValues vector
+ * @brief Custom formatter for TotalAndUnit struct. Allows you to easily output TotalAndUnit objects using std::println().
  */
-struct RelationshipSearchResult
+template <>
+struct std::formatter<TotalAndUnit> : std::formatter<std::string> 
 {
-	size_t	itemIndex;			// index in GrunObject::m_items
-	size_t	relationshipIndex;	// index in GrunItem::_itemCoreValues
+    // Optionally hold formatting options here if you want to support {:#}, {:.2f}, etc.
+    // For simplicity, we delegate parsing to the string formatter.
+
+    auto format(const TotalAndUnit& t, std::format_context& ctx) const 
+    {
+        // Format the object into a simple string: "Total (Unit)"
+        std::string s = std::format("{:.3f} {}", t._total, t._unit); // Using {:.3f} for double precision
+        
+        // Pass the formatted string to the underlying string formatter
+        return std::formatter<std::string>::format(s, ctx);
+    }
+};
+
+/**
+ * @brief Custom formatter for RelationshipSearchResult struct. Allows you to output a RelationshipSearchResult easily using std::println().
+ */
+template <>
+struct std::formatter<RelationshipSearchResult>
+{
+	// 1. Tell the compiler we don't need any special flags (like :.2f)
+    constexpr auto parse(std::format_parse_context& ctx) {
+        return ctx.begin();
+    }
+
+    auto format(const RelationshipSearchResult& r, std::format_context& ctx) const 
+    {
+        // write to the context's output buffer
+        return std::format_to(ctx.out(), "[{} => {}]", r.itemIndex, r.relationshipIndex);
+    }
 };
 
 /** 
  * @class GrunObject
- * @brief A GrunObject creates a 3D geometric shape object in data (memory).
- * * GrunObject allows developers to create simple, in-memory objects that are based upon 2D geometric shapes (like: Rectangle, Triangle, Circle etc.)
- * * **Key Features**
- * - **Minimal Input** Requires only sizes of the shape's dimensions (x,y,z) and the ShapeType.
- * - **Automatic Attribute Calculations** Automatically calculates additional attributes about the shape (area, volume, aspect ratio, circumference etc.) depending on the ShapeType
+ * @brief A GrunObject creates a representation of a 3D geometric shape object (a solid) in data (memory).\n
+ * GrunObject allows developers to create simple, in-memory objects that are based upon 2D geometric shapes (like: Rectangle, Triangle, Circle etc.)\n
+ * Key Features {key-features}
+ * - Minimal Input: Requires only sizes of the shape's dimensions (x,y,z) and the ShapeType.
+ * - Automatic Attribute Calculations: Automatically calculates additional attributes about the shape (area, volume, aspect ratio, circumference etc.) depending on the ShapeType
 */
-
 class GrunObject
 {
 	public:
@@ -230,16 +255,16 @@ class GrunObject
 	std::vector<size_t>	findGrunItemByItemName(	const std::string& findItemName, 
 												bool useExactSearch = true
 											  ) const;
-	std::vector<size_t>	findRelationshipByStrings(	const size_t itemIndex,
-													const std::string& relationship,
-													const std::string& relComment,
-													const bool useExactSearch = true
-												 ) const;
-	std::vector<size_t>	findRelationshipByStrings(	const std::vector<size_t> itemIndices,
-													const std::string& relationship,
-													const std::string& relComment,
-													const bool useExactSearch = true
-												 ) const;
+	std::vector<RelationshipSearchResult>	findRelationshipByStrings(	const size_t itemIndex,
+																		const std::string& relationship,
+																		const std::string& relComment,
+																		const bool useExactSearch = true
+																	 ) const;
+	std::vector<RelationshipSearchResult>	findRelationshipByStrings(	const std::vector<size_t> itemIndices,
+																		const std::string& relationship,
+																		const std::string& relComment,
+																		const bool useExactSearch = true
+																	 ) const;
 	// int				calculateGrunObjectTotals();	// temporarily commented out. needs to support GrunItem::_relationship being a std::vector
     double 				getAspectRatio();
 	GrunItem&			getGrunItemByIndex(const int index);
