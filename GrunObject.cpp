@@ -806,12 +806,12 @@ std::string GrunObject::substituteRelationshipTokens(const std::string& relation
 bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 {
 	bool foundARelationship = false;
-	// since GrunItem's can have arbitrary number of relationship strings, they are stored in a std::vector<std::string>
-	// loop the _relationship vector and handle each relationship the item has
-	for (const RelationshipValues& coreValueSet : item._itemCoreValues)
+	// since GrunItem's can have arbitrary number of relationships, they are stored in a std::vector<RelationshipValues>
+	// loop the _itemCoreValues vector and handle each relationship the item has
+	for (RelationshipValues& coreValueSet : item._itemCoreValues)
 	{
 		std::string	relationship	= coreValueSet.relationship;
-		// zero-check and continue to skip relationship if it is empty
+		// zero-check: if relationship is empty, 'continue' to skip for loop
 		std::string	baseExpr		= "";
 		// get the base expression (anything before the last occurence of an @ char, or the whole string)
 		auto		atPos			= relationship.find_last_of('@');
@@ -821,10 +821,10 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 		
 		std::string	saneBaseExpr	= std::regex_replace(baseExpr, REGEX_GI_BASEEXPR_SIG_TOKENS_AND_OPS, resultPattern);
 		if (saneBaseExpr.empty())
-			continue;
+			continue;	// end of zero-check
 
 		foundARelationship = true;
-		item._baseExpression = baseExpr;
+		coreValueSet.baseExpression = baseExpr;
 		// data acquisition - make a copy of _relationship because we need to modify it, but preserve the original value
 		auto		current			= std::source_location::current();							// for debugging output if needed
 		int			spatialAnchor	= 0;
@@ -843,7 +843,7 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 		}
 
 		// assign saneBaseExpr to the appropriate member in the item
-		item._baseExpressionIntprForSU = saneBaseExpr;
+		coreValueSet.baseExpressionIntrpForSU = saneBaseExpr;
 
 		// now we have to calculate what the saneBaseExpr equals in Spatial Unit Value
 		// set the saneBaseExpr's total Spatial Value to 0
@@ -862,7 +862,7 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 				c = static_cast<char>(asInt(getTokenExponent(c)) + 48);	// dev-note: + 48 to correctly cast the returned int value BACK to a char
 		}
 
-		item._baseExpressionIntprNumeric = numericExpr;
+		coreValueSet.baseExpressionIntrpNumeric = numericExpr;
 
 		// get the largest number in the numericExpr, clamp to min 0 and max 3
 		auto digits	= numericExpr 
@@ -870,8 +870,8 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 					| std::views::transform([](char c) { return c - '0'; });
 
 		if (!digits.empty())
-			spatialAnchor 	= std::clamp(std::ranges::max(digits),0,3);
-		item._spatialAnchor	= static_cast<SpatialExponentValue>(spatialAnchor);						  
+			spatialAnchor 			= std::clamp(std::ranges::max(digits),0,3);
+		coreValueSet.spatialAnchor	= static_cast<SpatialExponentValue>(spatialAnchor);						  
 
 		// process the operators - loop through the numericExpr char by char with the index value avaiable
 		std::string	numericExprResult;
@@ -909,12 +909,12 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 		if (!digitsAfter.empty())
 			spatialUnit = std::ranges::max(digitsAfter);
 		
-		item._spatialUnit = static_cast<SpatialExponentValue>(spatialUnit);
+		coreValueSet.spatialUnit = static_cast<SpatialExponentValue>(spatialUnit);
 
 		// to calculate the Spatial Quantity we must evaluate the GrunItem's base expression
-		item._spatialQuantityFormula = convertSpatialQuantitySHNToPEDMAS(item._baseExpression);
-		item._spatialQuantityFormula = substituteRelationshipTokens(item._spatialQuantityFormula);
-		item._spatialQuantity = evaluateArithmetic(item._spatialQuantityFormula);
+		coreValueSet.spatialQuantityFormula = convertSpatialQuantitySHNToPEDMAS(coreValueSet.baseExpression);
+		coreValueSet.spatialQuantityFormula = substituteRelationshipTokens(coreValueSet.spatialQuantityFormula);
+		coreValueSet.spatialQuantity 		= evaluateArithmetic(coreValueSet.spatialQuantityFormula);
 
 		// debug output
 		// std::println("Debug Output in: {}",current.function_name());

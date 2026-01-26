@@ -29,7 +29,12 @@ struct RelationshipValues
 	std::string				relationship;
 	std::string				relComment;
 	bool					isCompoundRelationship;
+	std::string				baseExpression;
+	std::string				baseExpressionIntrpForSU;
+	std::string				baseExpressionIntrpNumeric;
 	double					itemQuantity;
+	SpatialExponentValue	spatialAnchor;
+	std::string				spatialQuantityFormula;
 	double					spatialQuantity;
 	SpatialExponentValue	spatialUnit;
 };
