@@ -1,4 +1,6 @@
+#include <format>
 #include <print>
+#include <ranges>
 #include <vector>
 #include "GrunObject.h"
 
@@ -19,43 +21,30 @@ int main ()
 	slab.addGrunItem("Labour - Secondary", "1","","","hour(s)","");
 	slab.addGrunItem("Dowel R12 450 HDG","5L@0.6","","","bar(s)","/ 14");
 	slab.addGrunItem("N12 6000","2L2W","","/5.4","length(s)","");
-	
-	// search for an item, get any index results
-	std::string itemSearch = "N12 6000";
-	std::print("Item '{}' was found in location(s): ", itemSearch);
-	auto matchedIndices = slab.findGrunItemByItemName(itemSearch);
 
-	if (matchedIndices.empty()) { std::println("none found."); }
-	else
-	{
-		// iterate through the indices found
-		for (size_t index : matchedIndices)
-		{
-			std::print("{}, ",index);
-			std::println();
-			GrunItem&	foundItem = slab.getGrunItemByIndex(index);
-			// get the needed GrunItem and pass it to addGrunItemRelationship (write the GrunObect::GetGrunItem function...)
-			std::println("There are now {} relationships in item '{}'",slab.addGrunItemRelationship(foundItem, "3.0*2L@0.4", "X1: Extra Bars, Straights, 3.0m (3.0*2L@0.4)"), itemSearch);
-			std::println();
-		}
-		std::println();
+	// add additional relationship to GrunItem in index 11 (N12 6000)
+	slab.addGrunItemRelationship(slab.getGrunItemByIndex(11),"3.0*2L@0.4","X1: Extra Bars, Straight N12, 3.0m@0.4C");
+
+	// search all items, for a relationship
+	std::string comSearch									= "";
+	std::string relSearch									= "?L?W";
+	// create a vector with all the indices from the slab's (GrunObject's) m_items property, using modern C++23 views and ranges
+	std::vector<size_t>	searchIndices						= std::views::iota(0uz, slab.getTotalOfGrunItems()) | std::ranges::to<std::vector>();
+	std::vector<RelationshipSearchResult>	searchResults	= slab.findRelationshipByStrings(searchIndices,relSearch,comSearch,false);
+
+	std::print("Search results for Rel:'{}' and Com:'{}':",relSearch,comSearch);
+	if (!searchResults.empty()) 
+	{ 
+		for (const auto result : searchResults)
+			std::print(" {}", result);
 	}
 
-	std::string commentSearch = "extra bars";
-	auto matchedRelIndices = slab.findRelationshipByStrings(matchedIndices,"",commentSearch,false);
-	std::println("Searched m_items{}. Comment '{}' was found in: ", matchedIndices, commentSearch);
-	if (matchedRelIndices.empty()) { std::println("no relationship sets."); }
-	else
-	{
-		for (size_t index : matchedRelIndices)
-		{
-			std::print("{}, ",index);
-		}
-		std::println("indices.");
-	}
+	// std::print("Searched m_items{}. Searched for Relationship '{}' and Comment '{}'. Results were: {}", searchIndices, relSearch, comSearch, searchResults | std::views::all);
+	if (searchResults.empty()) { std::println(" no relationship/comment matches found."); }
+	std::println();
 
 	
-	std::println("GrunObject's details: Name: {}\n\tLength: {}\tWidth: {}\tDepth: {}\tArea: {}",slab.getObjectName(),slab.getObjectProperty("length"),slab.getObjectProperty("width"),slab.getObjectProperty("depth"),slab.getObjectProperty("area"));
+	// std::println("GrunObject's details: Name: {}\n\tLength: {}\tWidth: {}\tDepth: {}\tArea: {}",slab.getObjectName(),slab.getObjectProperty("length"),slab.getObjectProperty("width"),slab.getObjectProperty("depth"),slab.getObjectProperty("area"));
 	// std::println("GrunObject [{}] Item List information:\n{}", slab.getObjectName(), slab.getGrunItemListInfoAsString("%Y%m%d %H%M%S"));
 	// slab.calculateGrunObjectTotals();
 	// std::println("GrunObject's Totals Data {}", slab.getGrunObjectTotalsInfoAsString());
