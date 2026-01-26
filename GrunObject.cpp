@@ -306,32 +306,27 @@ std::vector<size_t> GrunObject::findGrunItemByItemName(const std::string& findIt
  * @param useExactSearch	(bool)			- toggle using broad or exact search (default: true - uses exact searching)
  * @note finding a relationship can be based on either the relationship string, the comment string, or both as the relationship string can be empty
  */
-std::vector<size_t> GrunObject::findRelationshipByStrings(const size_t itemIndex, const std::string &relationship, const std::string &relComment, const bool useExactSearch) const
+std::vector<RelationshipSearchResult> GrunObject::findRelationshipByStrings(const size_t itemIndex, const std::string &relationship, const std::string &relComment, const bool useExactSearch) const
 {
 	// out of bounds check
 	if (itemIndex >= m_items.size()) { return {}; }
 
-	std::vector<size_t> indices;
+	std::vector<RelationshipSearchResult> results;
 	const std::vector<RelationshipValues>& coreValues = m_items[itemIndex]._itemCoreValues;
 	
 	// check if we're just looking for empty values first
 	if (relationship.empty() && relComment.empty())
 	{
-		// there's nothing to search for, just look for any entries with empty relatiosnhip and relComment and return their indices
+		// there's nothing to search for, just look for any entries with empty relationship and relComment and return their indices
 		for (size_t i = 0; i < coreValues.size(); ++i)
 		{
 			if (coreValues[i].relationship.empty() && coreValues[i].relComment.empty())
 			{
-				indices.push_back(i);
+				results.push_back({itemIndex, i});
 			}
 		}
-		return indices;	// return early to skip the regex processing
+		return results;	// return early to skip the regex processing
 	}
-
-	std::string	relPattern		= relationship;
-	std::string	commentPattern	= relComment;
-	std::string	relRegexStr		= cabji::wildcardsToRegexReady(relPattern, useExactSearch);
-	std::string	commentRegexStr	= cabji::wildcardsToRegexReady(commentPattern, useExactSearch);
 
 	// find matching indices using straight string comparison (exact search)
 	bool hasWildcards	= relationship.find_first_of("*?") != std::string::npos
@@ -345,9 +340,9 @@ std::vector<size_t> GrunObject::findRelationshipByStrings(const size_t itemIndex
 			// only match is the search term is not empty, and matches exactly
 			bool relMatch = !relationship.empty()	&& coreValues[i].relationship == relationship;
 			bool comMatch = !relComment.empty()		&& coreValues[i].relComment == relComment;
-			if (relMatch || comMatch) {	indices.push_back(i);}
+			if (relMatch || comMatch) {	results.push_back({itemIndex, i});}
 		}
-		return indices;
+		return results;
 	}
 
 	// find matching indices using broader regex/wildcard search
@@ -360,24 +355,24 @@ std::vector<size_t> GrunObject::findRelationshipByStrings(const size_t itemIndex
 		bool	comMatch	= !relComment.empty()	&& std::regex_search(coreValues[i].relComment, comRegex);
 		if (relMatch || comMatch)
 		{
-			indices.push_back(i);
+			results.push_back({itemIndex, i});
 		}
 	}
-	return indices;
+	return results;
 }
 
-std::vector<size_t> GrunObject::findRelationshipByStrings(const std::vector<size_t> itemIndices, const std::string &relationship, const std::string &relComment, const bool useExactSearch) const
+std::vector<RelationshipSearchResult> GrunObject::findRelationshipByStrings(const std::vector<size_t> itemIndices, const std::string &relationship, const std::string &relComment, const bool useExactSearch) const
 {
 	// zero-check
 	if (itemIndices.empty()) { return {}; }
-	std::vector<size_t>	indices;
+	std::vector<RelationshipSearchResult>	allResults;
 	// loop each index in itemIndices and pass the arguments to the overloaded version that does the grunt work
 	for (size_t index : itemIndices)
 	{
-		std::vector<size_t> newIndices = findRelationshipByStrings(index, relationship, relComment, useExactSearch);
-		std::ranges::copy(newIndices, std::back_inserter(indices));
+		auto	itemResults = findRelationshipByStrings(index, relationship, relComment, useExactSearch);
+		std::ranges::copy(itemResults, std::back_inserter(allResults));
 	}
-	return indices;
+	return allResults;
 }
 
 /**
