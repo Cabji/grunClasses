@@ -65,9 +65,9 @@ class GrunItem
 	// simple calculated members (these member values are calculated simply from the _itemQuantity value)
 	double									_spatialTotalQuantity		= 0.0;							// the total 'Spatial Quantity' value for all relationships in the GrunItem's instance
 	double									_itemTotalQuantity			= 0.0;							// the total 'Item Quantity' value for all relationships in the GrunItem's instance
-	double									_itemPrimaryLabour			= 0.0;
+	double									_itemTotalPrimaryLabour		= 0.0;
 	double									_itemRoundUpFactor			= 1.0;
-	double									_itemQuantityRounded		= 0.0;
+	double									_itemTotalQuantityRounded	= 0.0;
 	double									_itemWasteFactor			= 0.0;
 	double									_itemWasteAllowance			= 0.0;
 	double									_itemItemizedProfitFactor	= 0.0;
