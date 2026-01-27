@@ -26,17 +26,21 @@ std::string spatialExponentValueToString(SpatialExponentValue exponent);
  */
 struct RelationshipValues
 {
-	std::string				relationship;
-	std::string				relComment;
-	bool					isCompoundRelationship;
-	std::string				baseExpression;
-	std::string				baseExpressionIntrpForSU;
-	std::string				baseExpressionIntrpNumeric;
-	double					itemQuantity;
-	SpatialExponentValue	spatialAnchor;
-	std::string				spatialQuantityFormula;
-	double					spatialQuantity;
-	SpatialExponentValue	spatialUnit;
+	std::string				relationship;					// the relationship string
+	std::string				relComment;						// the relationship comment string
+	// all values below here are interpretted and/or calculated from the relationship string
+
+	bool					isCompoundRelationship;			// if the relationship is deemed a compound relationship (used for spatial value calculations)
+	std::string				baseExpression;					// the full base expression of the relationship (used for spatial quantity calculations)
+	std::string				baseExpressionIntrpForSU;		// the base expression after simplification
+	std::string				baseExpressionIntrpNumeric;		// the base expression, after simplification, with tokens switched out for numeric SPatial Exponent values
+	SpatialExponentValue	spatialAnchor;					// the Spatial Anchor for this relationship only
+	std::string				spatialQuantityFormula;			// ?
+	double					spatialQuantity;				// the Spatial Quantity for this relationship only
+	SpatialExponentValue	spatialUnit;					// the Spatial Unit for this relationship only
+	std::string				interprettedRelationship;		// the full relationship string, after intepretation (with numeric values?)
+	double					itemQuantity;					// the item quantity for this relationship only
+
 };
 
 /**
@@ -57,26 +61,10 @@ class GrunItem
 	public:
 	std::string 							_itemName					= "";							// required value on construction
 	std::vector<RelationshipValues>			_itemCoreValues				= {};							// the core values in a GrunItem that must stay synced together
-	std::string								_relationship;												// the relationship will ultimately NOT be required on object creation, only the itemName is
-	std::string								_comment					= "";							// a comment hte end user can put in for the item
-
-	// interpretted member values (members that are derived when the item's _relationship is interpretted)
-	// the members are listed in a rough locigal order of when they are calculated in the code
-	bool									_isCompoundRelationship		= false;						// _isCompoundRelationship is determined by checking if the GrunItem's _calculatedSpatialUnit is smaller than its _itemQuantitySpatialUnit
-	SpatialExponentValue					_spatialUnit				= SpatialExponentValue::None;	// the 'Spatial Unit' value (after interpretting and considering the entire Base Expression)
-	double									_spatialQuantity			= 0.0;							// the 'Spatial Quantity' value
-	SpatialExponentValue					_itemQuantitySpatialUnit	= SpatialExponentValue::None;	// _itemQuantitySpatialUnit is the SpatialExponentValue (None,Linear,Area,Volume) that is assigned to the GrunItem based on the GrunItem's _itemQuantityUnits value *IF* the _itemQuantityUnits are already of a spatial unit type (dev-note: this mostly only works if the _itemQuantityUnits are 'm', 'm2', 'm3' and these values are hard coded in GrunObject::mapUnitToSpatialExponent() which will need to be more flexible for locales in the future)
-	double									_itemQuantity				= 0.0;
-
-	// development members (these are mostly here for during development to check things)
-	std::string								_baseExpression				= "";							// _baseExpression is the portion of the GrunItem's relationship string that is interpretted to result in the GrunItem's _calculatedSpatialUnit
-	std::string								_baseExpressionIntprForSU	= "";							// the base expression interpretted for calculating the Spatial Unit
-	std::string								_baseExpressionIntprNumeric	= "";							// the base expression after interpretation with numeric values in place of GrunObject Tokens and + in place of * operators
-	std::string								_interprettedRelationship	= "";							// the interpretted relationship of the GrunItem for Item Qty calculation purposes
-	SpatialExponentValue					_spatialAnchor				= SpatialExponentValue::None;	// the 'Spatial Anchor' value
-	std::string								_spatialQuantityFormula		= "";							// the formula that is derived by converting the Base Expression's SHN into numeric math formula
 
 	// simple calculated members (these member values are calculated simply from the _itemQuantity value)
+	double									_spatialTotalQuantity		= 0.0;							// the total 'Spatial Quantity' value for all relationships in the GrunItem's instance
+	double									_itemTotalQuantity			= 0.0;							// the total 'Item Quantity' value for all relationships in the GrunItem's instance
 	double									_itemPrimaryLabour			= 0.0;
 	double									_itemRoundUpFactor			= 1.0;
 	double									_itemQuantityRounded		= 0.0;
@@ -85,7 +73,7 @@ class GrunItem
 	double									_itemItemizedProfitFactor	= 0.0;
 	double									_itemItemizedProfit			= 0.0;
 	
-	// generally 'static' members (they do not change based on the owning Grunobject's prooperties, usually stored in an inventory or database and passed in when the GrunItem is created)
+	// 'outsourced' members (they do not change based on the owning Grunobject's properties, usually stored in an inventory or database and passed in when the GrunItem is created)
 	// overloaded ctr's will allow the dev to supply additional GrunItem values on instantination - this is for future development when GrunItem data will be sourced from a database or the network
 	std::string 							_itemPrimaryLabourFormula	= "";
 	std::string 							_itemQuantityFormula		= "";
@@ -97,7 +85,7 @@ class GrunItem
 	std::string 							_itemQuantityUnits			= "unit(s)";
 	std::string								_itemPrimaryLabourUnits		= "hour(s)";
 	bool									_hideFromClientView			= false;
-	std::string 							_clientViewMessage			= "";
+	std::string 							_clientViewMessage			= "Install " + _itemName + " as required";
 	std::chrono::system_clock::time_point	_itemLKGWUpdated{};
 	std::chrono::system_clock::time_point	_itemLKGWCalculated{};
 	// add more Item attributes as you need them through development
@@ -139,5 +127,5 @@ class GrunItem
 									const SpatialExponentValue& spatialUnit 	= SpatialExponentValue::None
 								);
 
-	size_t	rmRelationshipValues(	const int	index);
+	size_t	rmRelationshipValues(	const size_t	index);
 };
