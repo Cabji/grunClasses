@@ -19,12 +19,13 @@ int main ()
 	slab.addGrunItem("Tie Wire (Blek)", "1","","","roll(s)","/20");
 	slab.addGrunItem("Kahnkreet","V","","","m3","/ 2.5");
 	slab.addGrunItem("Labour - Secondary", "1","","","hour(s)","");
-	slab.addGrunItem("Dowel R12 450 HDG","5L@0.6","","","bar(s)","/ 14");
 	slab.addGrunItem("N12 6000","2L2W","","/5.4","length(s)","");
 
-	// add additional relationship to GrunItem in index 11 (N12 6000)
-	slab.addGrunItemRelationship(slab.getGrunItemByIndex(11),"3.0*2L@0.4","X1: Extra Bars, Straight N12, 3.0m@0.4C");
+	// add additional relationship to GrunItem in index 5 (Dowel R12 450 HDG) and 10 (N12 6000)
+	slab.addGrunItemRelationship(slab.getGrunItemByIndex(5), "5L@0.6", "5 gammon layers of dowel allegedly");
+	slab.addGrunItemRelationship(slab.getGrunItemByIndex(10),"3.0*2L@0.4","X1: Extra Bars, Straight N12, 3.0m@0.4C");
 
+/* this comment block demonstrates how to use the search methods to find relationships and their owning GrunItem locations in GrunObject::m_items
 	// search all items, for a relationship
 	std::string comSearch									= "";
 	std::string relSearch									= "?L?W";
@@ -42,10 +43,10 @@ int main ()
 	// std::print("Searched m_items{}. Searched for Relationship '{}' and Comment '{}'. Results were: {}", searchIndices, relSearch, comSearch, searchResults | std::views::all);
 	if (searchResults.empty()) { std::println(" no relationship/comment matches found."); }
 	std::println();
-
+*/
 	
-	// std::println("GrunObject's details: Name: {}\n\tLength: {}\tWidth: {}\tDepth: {}\tArea: {}",slab.getObjectName(),slab.getObjectProperty("length"),slab.getObjectProperty("width"),slab.getObjectProperty("depth"),slab.getObjectProperty("area"));
-	// std::println("GrunObject [{}] Item List information:\n{}", slab.getObjectName(), slab.getGrunItemListInfoAsString("%Y%m%d %H%M%S"));
+	std::println("GrunObject's details: Name: {}\n\tLength: {}\tWidth: {}\tDepth: {}\tArea: {}",slab.getObjectName(),slab.getObjectProperty("length"),slab.getObjectProperty("width"),slab.getObjectProperty("depth"),slab.getObjectProperty("area"));
+	std::println("GrunObject [{}] Item List information:\n{}", slab.getObjectName(), slab.getGrunItemListInfoAsString("%Y%m%d %H%M%S"));
 	// slab.calculateGrunObjectTotals();
-	// std::println("GrunObject's Totals Data {}", slab.getGrunObjectTotalsInfoAsString());
+	std::println("GrunObject's Totals Data {}", slab.getGrunObjectTotalsInfoAsString());
 }
