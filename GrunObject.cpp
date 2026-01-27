@@ -244,8 +244,10 @@ bool GrunObject::addGrunItem(std::string name, std::string relationship, std::st
  */
 size_t GrunObject::addGrunItemRelationship(GrunItem& item, const std::string &relationship, const std::string &relComment)
 {
-	// adds a new relationship set to the GrunItem and returns the new total number of relationships the GrunItem has
-	return item.addRelationshipValues(relationship, relComment);
+	// adds a new relationship set to the GrunItem, recalculates the GrunItem's values and returns the new total number of relationships the GrunItem has
+	size_t numberofRelationships = item.addRelationshipValues(relationship, relComment);
+	calculateGrunItemData(item);
+	return numberofRelationships;
 }
 
 /**
@@ -522,30 +524,27 @@ std::string GrunObject::getGrunItemListInfoAsString(const std::string dateFormat
 		std::string osSpatialUnit	= "";
 		std::string osItemQty		= "";
 
-		for (int i = 0; i < numRels; ++i)
+		for (const auto coreValueSet : item._itemCoreValues)
 		{
-			
-			osRelationship	+= item._itemCoreValues[i].relationship												+ ", ";
-			osSpatialQty	+= std::format("{:7.2f}, ",item._itemCoreValues[i].spatialQuantity);
-			osSpatialUnit	+= spatialExponentValueToString(item._itemCoreValues[i].spatialUnit).substr(0,9)	+ ", ";
-			osItemQty		+= std::format("{:7.2f}, ",item._itemCoreValues[i].itemQuantity);
+			osRelationship	+= coreValueSet.relationship											+ ", ";
+			osSpatialUnit	+= spatialExponentValueToString(coreValueSet.spatialUnit).substr(0,9)	+ ", ";
 		}
+
+		osSpatialQty	= std::format("{:7.2f} ",item._spatialTotalQuantity);
+		osItemQty		= std::format("{:7.2f} ",item._itemTotalQuantity);
 		// remove trailing ", "
 		osRelationship	= osRelationship.substr(0, (osRelationship.length() - 2));
-		osSpatialQty	= osRelationship.substr(0, (osRelationship.length() - 2));
-		osSpatialUnit	= osRelationship.substr(0, (osRelationship.length() - 2));
-		osItemQty		= osRelationship.substr(0, (osRelationship.length() - 2));
+		osSpatialUnit	= osSpatialUnit.substr(0, (osSpatialUnit.length() - 2));
 
 		returnVal += std::format("Rel: {:<12} ",osRelationship.substr(0,12)) + 			 
-					 std::format("{:<9}","SQ: ") + 
-					 std::format("{:<9} ",osSpatialQty) +
-					 std::format("SU:{:<11} ",osSpatialUnit) + 
+					 std::format("SQ: {}",osSpatialQty) + 
+					 std::format("SU:{:<11} ",osSpatialUnit.substr(0,11)) + 
 					 std::format("{:<10}","Item.Qty: ") + 
 					 std::format("{:<9} ",osItemQty) +
 					 std::format("{:<8} ",item._itemQuantityUnits.substr(0,8)) +
-					 std::format("(R:{:>7.2f}) ",item._itemQuantityRounded) +
+					 std::format("(R:{:>7.2f}) ",item._itemTotalQuantityRounded) +
 					 std::format("{:<10} ","P.Labour:") + 
-					 std::format("{:>6.2f} ", item._itemPrimaryLabour) + 
+					 std::format("{:>6.2f} ", item._itemTotalPrimaryLabour) + 
 					 std::format("{:<6} "," hr(s)") +
 					 std::format("{:<6} ","L.CT:") + 
 					 std::format("{:>}", item.getCalculatedTimeString(item._itemLKGWCalculated, dateFormat).substr(0,13)) +
@@ -638,13 +637,25 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
 	interpretGrunItemSpatialValues(item);
 	interpretGrunItemItemQuantity(item);
 
-	// zero-check: even if itemQuantity is 0, we still need to set everything else to 0.
+	// loop the item._itemCoreValues vector and total up the calculated values
+	/*
+	_spatialTotalQuantity
+	_itemTotalQuantity
+	_itemTotalPrimaryLabour
+	*/
+
+	for (const auto coreValueSet : item._itemCoreValues)
+	{
+		item._spatialTotalQuantity	+= coreValueSet.spatialQuantity;
+		item._itemTotalQuantity		+= coreValueSet.itemQuantity;
+	}
+
 	// next, calculate all the GrunItem's member values
-	item._itemPrimaryLabour		= applyFormula(item._itemQuantity,item._itemPrimaryLabourFormula);
-	item._itemQuantityRounded	= cabji::roundToStep(item._itemQuantity,item._itemRoundUpFactor);
-	item._itemWasteAllowance	= item._itemQuantity * item._itemWasteFactor;
-	item._itemItemizedProfit	= item._itemQuantity * item._itemItemizedProfitFactor;
-	item._itemLKGWCalculated	= std::chrono::system_clock::now();
+	item._itemTotalPrimaryLabour		= applyFormula(item._itemTotalQuantity,item._itemPrimaryLabourFormula);
+	item._itemTotalQuantityRounded		= cabji::roundToStep(item._itemTotalQuantity,item._itemRoundUpFactor);
+	item._itemWasteAllowance			= item._itemTotalQuantity * item._itemWasteFactor;
+	item._itemItemizedProfit			= item._itemTotalQuantity * item._itemItemizedProfitFactor;
+	item._itemLKGWCalculated			= std::chrono::system_clock::now();
 	return true;
 }
 
@@ -994,7 +1005,7 @@ bool GrunObject::interpretGrunItemItemQuantity(GrunItem &item)
 			itemQty					= evaluateArithmetic(tempForm);
 		}
 		
-		item._itemQuantity = itemQty;
+		coreValueSet.itemQuantity = itemQty;
 		// std::println("relationship: {}",relationship);
 	}
 	return false;
