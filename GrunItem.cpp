@@ -67,7 +67,7 @@ size_t GrunItem::addRelationshipValues(	const std::string& relationship,
 /** 
  * @brief Removes a RelationshipValues from the _itemCoreValues vector by index value
  */
-size_t GrunItem::rmRelationshipValues(const int index)
+size_t GrunItem::rmRelationshipValues(const size_t index)
 {
 	if (index >= this->_itemCoreValues.size())
 	{
