@@ -20,6 +20,7 @@ int main ()
 	slab.addGrunItem("Kahnkreet","V","","","m3","/ 2.5");
 	slab.addGrunItem("Labour - Secondary", "1","","","hour(s)","");
 	slab.addGrunItem("N12 6000","2L2W","","/5.4","length(s)","");
+	slab.addGrunItem("Dowel R12 450 HDG","150","","","bar(s)","/ 14");
 
 	// add additional relationship to GrunItem in index 5 (Dowel R12 450 HDG) and 10 (N12 6000)
 	slab.addGrunItemRelationship(slab.getGrunItemByIndex(5), "5L@0.6", "5 gammon layers of dowel allegedly");
@@ -47,6 +48,6 @@ int main ()
 	
 	std::println("GrunObject's details: Name: {}\n\tLength: {}\tWidth: {}\tDepth: {}\tArea: {}",slab.getObjectName(),slab.getObjectProperty("length"),slab.getObjectProperty("width"),slab.getObjectProperty("depth"),slab.getObjectProperty("area"));
 	std::println("GrunObject [{}] Item List information:\n{}", slab.getObjectName(), slab.getGrunItemListInfoAsString("%Y%m%d %H%M%S"));
-	// slab.calculateGrunObjectTotals();
+	slab.calculateGrunObjectTotals();
 	std::println("GrunObject's Totals Data {}", slab.getGrunObjectTotalsInfoAsString());
 }

@@ -265,7 +265,7 @@ class GrunObject
 																		const std::string& relComment,
 																		const bool useExactSearch = true
 																	 ) const;
-	// int				calculateGrunObjectTotals();	// temporarily commented out. needs to support GrunItem::_relationship being a std::vector
+	int					calculateGrunObjectTotals();
     double 				getAspectRatio();
 	GrunItem&			getGrunItemByIndex(const int index);
 	std::string			getGrunItemListInfoAsString(const std::string dateFormat = "%d/%m/%Y");
@@ -313,4 +313,6 @@ class GrunObject
 	SpatialExponentValue	getTokenExponent(char token);
 	std::string 			substituteRelationshipTokens(const std::string& relationship) const;
 	SpatialExponentValue	mapUnitToSpatialExponent(const std::string& unit) const;
+	std::string 			spatialUnitToString(SpatialExponentValue unit);
+	std::string 			spatialUnitToSuffix(SpatialExponentValue unit);
 };

@@ -659,70 +659,50 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
 	return true;
 }
 
-// int GrunObject::calculateGrunObjectTotals()
-// {
-// 	// loop through the pointer-to-members in m_totalsPtrs using the number of members assigned in the GrunObjectTotals struct
-// 	for (int i = 0; i < GrunObjectTotals::getMapCount(); i++)
-// 	{
-// 		// define the destination for our data
-// 		// set which member of GrunObjectTotals we are pointing to using the value of i as the index of the GrunObjectTotals::TOTAL_PTRS[] array
-// 		auto		memberPtr	= GrunObjectTotals::TOTALS_PTRS[i];
-// 		auto&		currentMap	= m_objectTotals.*memberPtr;
+int GrunObject::calculateGrunObjectTotals() {
+    for (int i = 0; i < GrunObjectTotals::getMapCount(); i++) {
+        auto memberPtr = GrunObjectTotals::TOTALS_PTRS[i];
+        auto& currentMap = m_objectTotals.*memberPtr;
 
-// 		for (const auto& item : m_items)
-// 		{
-// 			// Temporary variables to hold the aggregation data determined by the switch
-// 			std::string aggregationKey	= "";
-// 			double		itemQuantity	= 0.0;
-// 			std::string	itemUnit		= "";
+        for (const auto& item : m_items) 
+		{
+            // Case 0 and Case 2 only care about the ITEM as a whole
+			// this if conditional is where we set what item members to look at for each totalling aggregation
+            if (i == 0 || i == 2) 
+			{
+                std::string aggregationKey = (i == 0) ? m_name : item._itemName;
+                double itemQuantity = (i == 0) ? item._itemTotalPrimaryLabour : item._itemTotalQuantityRounded;
+                std::string itemUnit = (i == 0) ? item._itemPrimaryLabourUnits : item._itemQuantityUnits;
 
-// 			switch (i)
-// 			{
-// 				case 0:
-// 					// Case 0 (Labour Total): Aggregate everything into a single grand total, keyed by the object's name.
-// 					aggregationKey	= m_name;
-// 					itemQuantity	= item._itemPrimaryLabour;
-// 					itemUnit		= item._itemPrimaryLabourUnits;
-// 					break;
-				
-// 				case 1:
-// 					// Case 1 (Spatial Totals): Aggregate by the relationship unit (e.g., 'A', '2W', 'V')
-// 					aggregationKey	= item._relationship;
-// 					itemQuantity	= item._spatialQuantity;
-// 					itemUnit		= item._relationship; // Use relationship string as the unit/identifier
-// 					break;
+                if (itemQuantity != 0.0 && !aggregationKey.empty()) {
+                    TotalAndUnit& entry = currentMap[aggregationKey];
+                    entry._total += itemQuantity;
+                    if (entry._unit == "unit(s)" || entry._unit.empty()) entry._unit = itemUnit;
+                }
+            }
+            // Case 1: Spatial Totals (Iterate through the new relationship vector)
+            else if (i == 1) {
+                for (const auto& rel : item._itemCoreValues) {
+                    // Convert the SpatialExponentValue enum to a string for the map key
+                    // (e.g., "Linear", "Area", "Volume")
+                    std::string aggregationKey = spatialUnitToString(rel.spatialUnit);
+                    double relQuantity = rel.spatialQuantity;
 
-// 				case 2:
-// 					// Case 2 (Item Unit Totals): Aggregate by the Item Name.
-// 					aggregationKey	= item._itemName; 
-// 					itemQuantity	= item._itemQuantity;
-// 					itemUnit		= item._itemQuantityUnits; // Use the base item unit
-// 					break;
-				
-// 				default:
-// 					break;
-// 			}
-			
-// 			// 2. Aggregation step: Use the determined key to look up (or create) the entry in the map
-// 			if (itemQuantity != 0.0 && !aggregationKey.empty()) 
-// 			{
-// 				// Get a reference to the specific TotalAndUnit structure we want to update.
-// 				// operator[] will create a new TotalAndUnit entry if the key doesn't exist.
-// 				TotalAndUnit& entry = currentMap[aggregationKey];
-
-// 				// Aggregate the total value
-// 				entry._total += itemQuantity;
-
-// 				// Set the unit: Only set it if the entry is currently using the default/empty unit.
-// 				// This ensures the unit from the first item aggregated is used for the key.
-// 				if (entry._unit == "unit(s)" || entry._unit.empty()) {
-// 					entry._unit = itemUnit;
-// 				}
-// 			}
-// 		}
-// 	}
-// 	return 0;
-// }
+                    if (relQuantity != 0.0) {
+                        TotalAndUnit& entry = currentMap[aggregationKey];
+                        entry._total += relQuantity;
+                        
+                        // Set the unit based on the spatial dimension (m, m2, m3, etc)
+                        if (entry._unit == "unit(s)" || entry._unit.empty()) {
+                            entry._unit = spatialUnitToSuffix(rel.spatialUnit); 
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return 0;
+}
 
 // looks at a GrunItem's unit of measure and tries to determine which SpatialExponentValue it should be
 SpatialExponentValue GrunObject::mapUnitToSpatialExponent(const std::string& unit) const
@@ -1099,4 +1079,22 @@ SpatialExponentValue GrunObject::getTokenExponent(char token)
 {
 	std::string s(1,token);
 	return getTokenExponent(s);
+}
+
+std::string GrunObject::spatialUnitToString(SpatialExponentValue unit) {
+    switch(unit) {
+        case SpatialExponentValue::Linear: return "Linear Totals";
+        case SpatialExponentValue::Area: return "Area Totals";
+        case SpatialExponentValue::Volume: return "Volume Totals";
+        default: return "Unitless Totals";
+    }
+}
+
+std::string GrunObject::spatialUnitToSuffix(SpatialExponentValue unit) {
+    switch(unit) {
+        case SpatialExponentValue::Linear: return "m";
+        case SpatialExponentValue::Area: return "m2";
+        case SpatialExponentValue::Volume: return "m3";
+        default: return "unit(s)";
+    }
 }
