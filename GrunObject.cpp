@@ -971,7 +971,7 @@ std::string GrunObject::convertSpatialQuantitySHNToPEDMAS(const std::string &shn
 bool GrunObject::interpretGrunItemItemQuantity(GrunItem &item)
 {
 	// zero-check
-	if (item._relationship.empty()) return false;
+	if (item._itemCoreValues.empty()) return false;
 
 	for (RelationshipValues& coreValueSet : item._itemCoreValues)
 	{
@@ -985,8 +985,8 @@ bool GrunObject::interpretGrunItemItemQuantity(GrunItem &item)
 		relationship	= std::regex_replace(relationship, REGEX_SHN_TO_PEDMAS_5_IMPLICIT_ADD_OPERATORS, ")+(");
 		relationship	= std::regex_replace(relationship, REGEX_SHN_TO_PEDMAS_6_PRIORITIZE_COMBINING_TERMS, "($1)");
 
-		item._interprettedRelationship = substituteRelationshipTokens(relationship);
-		double	itemQty	= evaluateArithmetic(item._interprettedRelationship);
+		coreValueSet.interprettedRelationship = substituteRelationshipTokens(relationship);
+		double	itemQty	= evaluateArithmetic(coreValueSet.interprettedRelationship);
 		// itemQty at this point is only preliminary. check if the item has a value for its _itemQuantityFormula and apply it if it does
 		if (!item._itemQuantityFormula.empty())
 		{
