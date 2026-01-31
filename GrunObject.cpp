@@ -872,7 +872,7 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 			spatialAnchor 			= std::clamp(std::ranges::max(digits),0,3);
 		coreValueSet.spatialAnchor	= static_cast<SpatialExponentValue>(spatialAnchor);						  
 
-		// process the operators - loop through the numericExpr char by char with the index value avaiable
+		// process the operators - loop through the numericExpr char by char with the index value available
 		std::string	numericExprResult;
 		// used to skip operators during processing so we only add numbers together
 		int			skipCount = 0;
@@ -942,6 +942,9 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
  */
 std::string GrunObject::convertSpatialQuantitySHNToPEDMAS(const std::string &shn)
 {
+	// dev-note: when we enter this method, shn should be the "base expression" which is anything BEFORE an @ sign in the relationship string of an item
+	// therefore, argument shn should look something like: 2L1W, 3.0*2L or 5L etc.
+
 	// zero-check
 	if (shn.empty()) return std::string();
 
@@ -955,16 +958,16 @@ std::string GrunObject::convertSpatialQuantitySHNToPEDMAS(const std::string &shn
 	numericForm = std::regex_replace(numericForm, REGEX_SHN_TO_PEDMAS_5_IMPLICIT_ADD_OPERATORS, ")+(");			// puts implicit addition operators in
 
 	std::smatch match;
-	if (!numericForm.contains('+'))
-	{
-		// if the numericForm doesn't contain a + operator, the Spatial Value will equal whatever the solitary GrunObject Token represents numerically
-		std::regex_search(numericForm, match, REGEX_GO_ALL_TOKENS);
-		numericForm = match[0].str();
-	}
-	else if (std::regex_search(numericForm, match, REGEX_SPATIAL_QTY_SIMPLIFY))
+	if (std::regex_search(numericForm, match, REGEX_SPATIAL_QTY_SIMPLIFY))
 	{
 		numericForm = match[0].str();
 	}
+	else
+	{
+		// dev-note: if we get here this is a problem!
+		numericForm = "";
+	}
+	
 	return numericForm;
 }
 
