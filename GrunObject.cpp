@@ -412,6 +412,7 @@ double GrunObject::getObjectProperty(const std::string propertyName)
 	if (propertyName == "width")	{ return m_y; }
 	if (propertyName == "depth")	{ return m_z; }
 	if (propertyName == "area") 	{ return m_area; }
+	if (propertyName == "volume")	{ return m_volume; }
 	return 0.0;
 }
 
@@ -663,7 +664,8 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
 }
 
 int GrunObject::calculateGrunObjectTotals() {
-    for (int i = 0; i < GrunObjectTotals::getMapCount(); i++) {
+    for (int i = 0; i < GrunObjectTotals::getMapCount(); i++) 
+	{
         auto memberPtr = GrunObjectTotals::TOTALS_PTRS[i];
         auto& currentMap = m_objectTotals.*memberPtr;
 
@@ -677,7 +679,8 @@ int GrunObject::calculateGrunObjectTotals() {
                 double itemQuantity = (i == 0) ? item._itemTotalPrimaryLabour : item._itemTotalQuantityRounded;
                 std::string itemUnit = (i == 0) ? item._itemPrimaryLabourUnits : item._itemQuantityUnits;
 
-                if (itemQuantity != 0.0 && !aggregationKey.empty()) {
+                if (itemQuantity != 0.0 && !aggregationKey.empty()) 
+				{
                     TotalAndUnit& entry = currentMap[aggregationKey];
                     entry._total += itemQuantity;
                     if (entry._unit == "unit(s)" || entry._unit.empty()) entry._unit = itemUnit;
@@ -685,10 +688,10 @@ int GrunObject::calculateGrunObjectTotals() {
             }
             // Case 1: Spatial Totals (Iterate through the new relationship vector)
             else if (i == 1) {
-                for (const auto& rel : item._itemCoreValues) {
-                    // Convert the SpatialExponentValue enum to a string for the map key
-                    // (e.g., "Linear", "Area", "Volume")
-                    std::string aggregationKey = spatialUnitToString(rel.spatialUnit);
+                for (const auto& rel : item._itemCoreValues) 
+				{
+					// Case 1 distinguish between different spatial unit types "Timber (m)" and "Timber (m3)"
+					std::string aggregationKey = item._itemName + " (" + spatialUnitToSuffix(rel.spatialUnit) + ")";
                     double relQuantity = rel.spatialQuantity;
 
                     if (relQuantity != 0.0) {
