@@ -564,7 +564,7 @@ std::string GrunObject::getGrunObjectTotalsInfoAsString() const
 	// Helper array to hold the display names for the map categories
 	const std::string categories[] = {
 		"Primary Labour Total",
-		"Spatial Material Totals (By Relationship)",
+		"Spatial Material Totals (By Spatial Unit)",
 		"Item Unit Totals (By Item Name)"
 	};
 	
@@ -644,6 +644,9 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
 	_itemTotalPrimaryLabour
 	*/
 
+	// reset totals to 0 otherwise we end up with incorrect totals for items with multiple relationships
+	item._spatialTotalQuantity	= 0;
+	item._itemTotalQuantity		= 0;
 	for (const auto coreValueSet : item._itemCoreValues)
 	{
 		item._spatialTotalQuantity	+= coreValueSet.spatialQuantity;
@@ -797,30 +800,33 @@ std::string GrunObject::substituteRelationshipTokens(const std::string& relation
 bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 {
 	bool foundARelationship = false;
-	// since GrunItem's can have arbitrary number of relationships, they are stored in a std::vector<RelationshipValues>
+
+// 0: loop the _itemCoreValues vector for access to relationship string(s)
 	// loop the _itemCoreValues vector and handle each relationship the item has
 	for (RelationshipValues& coreValueSet : item._itemCoreValues)
 	{
+		// data acquisition
 		std::string	relationship	= coreValueSet.relationship;
-		// zero-check: if relationship is empty, 'continue' to skip for loop
 		std::string	baseExpr		= "";
 		// get the base expression (anything before the last occurence of an @ char, or the whole string)
 		auto		atPos			= relationship.find_last_of('@');
 		baseExpr = relationship.substr(0, atPos);
 		std::string	resultPattern	= "";
 		// use regex_replace to find significant characters in the baseExpr and put them in a string														// the replacement pattern used for a regex_replace call
-		
 		std::string	saneBaseExpr	= std::regex_replace(baseExpr, REGEX_GI_BASEEXPR_SIG_TOKENS_AND_OPS, resultPattern);
+		coreValueSet.baseExpression = baseExpr;
+		auto		current			= std::source_location::current();							// for debugging output if needed
+		int			spatialAnchor	= 0;
+
+		// zero-check: if relationship is empty, 'continue' to skip for loop
 		if (saneBaseExpr.empty())
 			continue;	// end of zero-check
 
 		foundARelationship = true;
-		coreValueSet.baseExpression = baseExpr;
-		// data acquisition - make a copy of _relationship because we need to modify it, but preserve the original value
-		auto		current			= std::source_location::current();							// for debugging output if needed
-		int			spatialAnchor	= 0;
+		
+	// 1: sanitize the base expression for Spatial Unit and Spatial Value calculation
 
-		// we are assuming the saneBaseExpr has *something* in it at this point - probably dangerous
+		// we are assuming the saneBaseExpr has *something* in it at this point - probably dangerous, but we did do an .empty() check
 		// strip * or / from front and back of string
 		while ((saneBaseExpr.front() == '*' || saneBaseExpr.front() == '/'))
 		{
@@ -836,10 +842,12 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 		// assign saneBaseExpr to the appropriate member in the item
 		coreValueSet.baseExpressionIntrpForSU = saneBaseExpr;
 
-		// now we have to calculate what the saneBaseExpr equals in Spatial Unit Value
-		// set the saneBaseExpr's total Spatial Value to 0
-		int exprTotalSV	= 0;
+	// 2: set a few values that are mostly only useful for bug tracking if you get bugs appearing
+
+		// i think this is deprecated - total Spatial Value calculated from the interpretted expression
+		// int exprTotalSV	= 0;
 		
+		// the saneBaseExpr with GrunObject Tokens switched out for their numeric worth
 		std::string numericExpr = saneBaseExpr;
 
 		// dev-note: we are assuming saneBaseExpr is a SANITIZED string. If you get unexpected behaviour, you should probably check the value of saneBaseExpr
@@ -866,6 +874,7 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 
 		// process the operators - loop through the numericExpr char by char with the index value avaiable
 		std::string	numericExprResult;
+		// used to skip operators during processing so we only add numbers together
 		int			skipCount = 0;
 		for (auto [i, c] : std::views::enumerate(numericExpr))
 		{
@@ -902,7 +911,7 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 		
 		coreValueSet.spatialUnit = static_cast<SpatialExponentValue>(spatialUnit);
 
-		// to calculate the Spatial Quantity we must evaluate the GrunItem's base expression
+	// 3. calculate the Spatial Quantity by evaluating the GrunItem's base expression
 		coreValueSet.spatialQuantityFormula = convertSpatialQuantitySHNToPEDMAS(coreValueSet.baseExpression);
 		coreValueSet.spatialQuantityFormula = substituteRelationshipTokens(coreValueSet.spatialQuantityFormula);
 		coreValueSet.spatialQuantity 		= evaluateArithmetic(coreValueSet.spatialQuantityFormula);
@@ -940,10 +949,10 @@ std::string GrunObject::convertSpatialQuantitySHNToPEDMAS(const std::string &shn
 	// dev-note: regex patterns used here are defined in constants at hte top of this file.
 
 	std::string numericForm = shn;
-	std::erase_if(numericForm, [](char c) { return std::isspace(static_cast<unsigned char>(c)); });			// strip whitespace
-	numericForm	= std::regex_replace(numericForm, REGEX_SHN_TO_PEDMAS_2_NUM_FACTOR_AND_GO_TOKEN, "($1*$2)");
-	numericForm = std::regex_replace(numericForm, REGEX_SHN_TO_PEDMAS_4_MISSING_NUMERIC_FACTOR, "(1*");
-	numericForm = std::regex_replace(numericForm, REGEX_SHN_TO_PEDMAS_5_IMPLICIT_ADD_OPERATORS, ")+(");
+	std::erase_if(numericForm, [](char c) { return std::isspace(static_cast<unsigned char>(c)); });				// strip whitespace
+	numericForm	= std::regex_replace(numericForm, REGEX_SHN_TO_PEDMAS_2_NUM_FACTOR_AND_GO_TOKEN, "($1*$2)");	// puts implicit multiplication operators in
+	numericForm = std::regex_replace(numericForm, REGEX_SHN_TO_PEDMAS_4_MISSING_NUMERIC_FACTOR, "(1*");			// puts "1*" in where required
+	numericForm = std::regex_replace(numericForm, REGEX_SHN_TO_PEDMAS_5_IMPLICIT_ADD_OPERATORS, ")+(");			// puts implicit addition operators in
 
 	std::smatch match;
 	if (!numericForm.contains('+'))
