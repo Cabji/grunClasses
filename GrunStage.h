@@ -12,7 +12,11 @@ class GrunStage
 	std::vector<GrunObject>		m_objects;								// a vector of GrunObjects this GrunStage pwns
 	std::string					m_name		= "";						// the name of this GrunStage
 
-	public:
+	size_t		addGrunObject(	const	GrunObject& 	gObject);
+	size_t		rmGrunObject(	const	int&			objIndex);
+	void		setName(		const	std::string&	name);
 
-	bool			addGrunObject(GrunObject& gObject);
+	public:
+	// ctr
+	GrunStage(const std::string& stageName);
 };
