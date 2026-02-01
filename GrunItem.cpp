@@ -13,7 +13,7 @@ GrunItem::GrunItem(	std::string name,
 					_itemPrimaryLabourFormula(std::move(primaryLabourFormula))
 {
 	// on GrunItem creation, create a CoreValues object with default values and push it into the _itemCoreValues vector
-	addRelationshipValues(relationship, relComment, false, 0.0, 0.0, SpatialExponentValue::None);
+	addRelationshipValues(relationship, relComment, 0.0, 0.0, SpatialExponentValue::None);
 }
 
 /**
@@ -37,7 +37,6 @@ std::string spatialExponentValueToString(SpatialExponentValue exponent)
  * @brief Adds a new set of RelationshipValues to the GrunItem. All arguments are optional.
  * @param relationship				(std::string)			- the GrunItem's relationship string (default: empty)
  * @param relComment				(std::string)			- this relationship's optional comment string (default: empty)
- * @param isCompoundRelationship	(bool)					- gets calculated later (default: false)
  * @param itemQuantity				(double)				- gets claculated later (default: 0.0)
  * @param spatialQuantity			(double)				- gets claculated later (default: 0.0)
  * @param spatialUnit				(SpatialExponentValue)	- gets claculated later (default: SpatialExponentValue::None)
@@ -45,7 +44,6 @@ std::string spatialExponentValueToString(SpatialExponentValue exponent)
  */
 size_t GrunItem::addRelationshipValues(	const std::string& relationship,
 										const std::string& relComment,
-										const bool& isCompoundRelationship,
 										const double& itemQuantity,
 										const double& spatialQuantity,
 										const SpatialExponentValue& spatialUnit
@@ -55,7 +53,6 @@ size_t GrunItem::addRelationshipValues(	const std::string& relationship,
 	RelationshipValues	newValues;
 	newValues.relationship				= relationship;
 	newValues.relComment				= relComment;
-	newValues.isCompoundRelationship	= isCompoundRelationship;
 	newValues.itemQuantity				= itemQuantity;
 	newValues.spatialQuantity			= spatialQuantity;
 	newValues.spatialUnit				= spatialUnit;

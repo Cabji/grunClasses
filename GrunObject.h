@@ -297,7 +297,8 @@ class GrunObject
 	std::string			getGrunObjectTotalsInfoAsString() const;
 	std::string			getObjectName();
 	ItemAndTotal		getItemQtyTotal(const size_t& index, const bool& getRounded = false);
-	std::vector<ItemAndTotal>	getItemQtyTotals(const bool& getRounded = false);
+	std::vector
+		<ItemAndTotal>	getItemQtyTotals(const bool& getRounded = false);
 	double				getObjectProperty(const std::string propertyName);
 	size_t				getTotalOfGrunItems();
 	size_t 				removeGrunItem(const std::string& itemName, bool removeAll = false);
@@ -318,10 +319,10 @@ class GrunObject
 	double										m_circumference;		// the circumference of the shape if it's a Circle.
 	std::vector<GrunItem>						m_items;				// std::vector of GrunItems associated to the GrunObject
 	GrunObjectTotals							m_objectTotals;			// an object that holds Totals data about the GrunItems in this GrunObject
-	std::unordered_map<
-		std::string, 
-		TotalAndUnit> 
-			GrunObjectTotals::*					m_totalsPtrs[];
+	std::unordered_map
+		<std::string, 
+		 TotalAndUnit
+		>GrunObjectTotals::*					m_totalsPtrs[];
 
 	/**
      * @brief Static constant map that links GrunObject properties (as strings) to their dimensional exponent value.

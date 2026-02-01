@@ -30,7 +30,6 @@ struct RelationshipValues
 	std::string				relComment;						// the relationship comment string
 	// all values below here are interpretted and/or calculated from the relationship string
 
-	bool					isCompoundRelationship;			// if the relationship is deemed a compound relationship (used for spatial value calculations)
 	std::string				baseExpression;					// the full base expression of the relationship (used for spatial quantity calculations)
 	std::string				baseExpressionIntrpForSU;		// the base expression after simplification
 	std::string				baseExpressionIntrpNumeric;		// the base expression, after simplification, with tokens switched out for numeric SPatial Exponent values
@@ -114,14 +113,12 @@ class GrunItem
 	 * @brief Add new RelationshipValues to GrunItem. Allows default values.
 	 * @param	relationship			(std::string)	a relationship string for the owning GrunItem
 	 * @param	relComment				(std::string)	a comment string specifically to describe the relationship (optional)
-	 * @param	isCompoundRelationship	(bool)			if the relationship is compound or not (this will get calculated later on too)
 	 * @param	itemQuantity			(double)		the calculated item quantity based on the relationship
 	 * @param	spatialQuantity			(double)		the calculated spatial quantity based on the relationship
 	 * @param	spatialUnit				(SpatialExponentValue)	the calculated spatial unit based on the relationship
 	 */
 	size_t addRelationshipValues(	const std::string& relationship				= "", 
 									const std::string& relComment				= "",
-									const bool& isCompoundRelationship			= false, 
 									const double& itemQuantity 					= 0.0, 
 									const double& spatialQuantity				= 0.0, 
 									const SpatialExponentValue& spatialUnit 	= SpatialExponentValue::None
