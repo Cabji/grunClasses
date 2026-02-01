@@ -70,14 +70,14 @@ const std::unordered_map<std::string, SpatialExponentValue> GrunObject::property
  * @throws invalid_argument - if x,y or z values are invalid for calculations (<= 0)
  * @throws runtime_error - if calculated aspect ratio is NaN or is infinite
  */
-GrunObject::GrunObject(const std::string &typeName,
+GrunObject::GrunObject(const std::string &shapeType,
 					   const std::string &name,
                        double x,
                        double y,
 					   double z,
 					   const std::string &areaType,
 					   const std::string &stage)
-        : m_type(shapeTypeFromString(typeName)),
+        : m_type(shapeTypeFromString(shapeType)),
 		  m_name(name),
           m_x(x),
           m_y(y),
@@ -90,7 +90,7 @@ GrunObject::GrunObject(const std::string &typeName,
 	// 2. based on the ShapeType, can we calculate any relevant information about the object using the given member values?
 
 	if (m_type == ShapeType::Unknown)
-		throw std::invalid_argument("invalid shape m_type: " + typeName);
+		throw std::invalid_argument("invalid shape m_type: " + shapeType);
 	
 	// calculate all relevant information possible for each ShapeType
 	switch (m_type)
