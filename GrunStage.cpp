@@ -7,7 +7,7 @@
  */
 GrunStage::GrunStage(const std::string& stageName) : m_name(stageName)
 {
-
+	// add any involved construction code here as needed
 }
 
 /**
@@ -22,15 +22,29 @@ size_t GrunStage::addGrunObject(const GrunObject& gObject)
 	return m_objects.size();
 }
 
+size_t GrunStage::createGrunObject(const std::string &shapeType, const std::string &name, double x, double y, double z, const std::string &areaType, const std::string &stage)
+{
+	// check name argument and set if needed
+	(name.empty()) ? this->getName() : name;
+	// use GrunObject ctr to create the new GrunObject
+	GrunObject	newGrunObject(shapeType, name, x, y, z, areaType, stage);
+	return this->addGrunObject(newGrunObject);
+}
+
+const std::string GrunStage::getName()
+{
+		return m_name;
+}
+
 /**
  * @brief Remove a GrunObject from the GrunStage
- * 
+ *
  * @param objIndex (int)	- the inde of the GrunObject to remove
  * @return size_t Returns the remaining number of GrunObjects in m_objects
  */
 size_t GrunStage::rmGrunObject(const int& objIndex)
 {
-	m_objects.erase(objIndex);
+	m_objects.erase(m_objects.begin() + objIndex);
 	return m_objects.size();
 }
 
