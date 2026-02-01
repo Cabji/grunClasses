@@ -405,6 +405,39 @@ std::string GrunObject::getObjectName()
 	return this->m_name;
 }
 
+/**
+ * @brief Get an owned GrunItem's ItemQtyTotal by index
+ * 
+ * @param index 		(size_t)	- the index of the GrunItem in its owning GrunObject m_item[] vector
+ * @param getRounded	(bool)		- toggle if you want the unrounded or rounded total quantity
+ * @return (ItemAndTotal)			- an ItemAndTotal struct instance holding the desired data
+ */
+ItemAndTotal GrunObject::getItemQtyTotal(const size_t& index, const bool& getRounded)
+{
+	// zero-check and out-of-bounds check
+	if (index < 0 || index >= m_items.size()) { return ItemAndTotal(); }
+
+	ItemAndTotal	returnObj;
+	// get the GrunItem's data from m_item[index]
+	returnObj.itemName	= m_items[index]._itemName;
+	returnObj.itemTotal._total	= (getRounded) ? m_items[index]._itemTotalQuantityRounded : m_items[index]._itemTotalQuantity;
+	return returnObj;
+}
+
+std::vector<ItemAndTotal> GrunObject::getItemQtyTotals(const bool& getRounded)
+{
+	// zero-check
+	if (m_items.size() == 0) { return std::vector<ItemAndTotal>(); }
+
+	std::vector<ItemAndTotal>	returnVec;
+	// loop the size of the m_items vector, get the ItemQtyTotal data we want using getItemQtyTotal, push it into returnVec
+	for (size_t i = 0; i < m_items.size(); i++)
+	{
+		returnVec.push_back(getItemQtyTotal(i, getRounded));
+	}
+	return returnVec;
+}
+
 double GrunObject::getObjectProperty(const std::string propertyName)
 {
 	// quick and dirty hack code for testing only, needs to support AreaType recognition

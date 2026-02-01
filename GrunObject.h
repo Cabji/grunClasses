@@ -53,6 +53,12 @@ struct TotalAndUnit
 	std::string	_unit	= "unit(s)";
 };
 
+struct ItemAndTotal
+{
+	std::string		itemName	= "";
+	TotalAndUnit	itemTotal;
+};
+
 /**
  * @brief Holds 'totals' values about the GrunItems in this GrunObject
  * @property _labourTotal				(std::unordered_map<std::string, TotalsAndUnits>)	first() holds string "Labour", second() holds TotalsAndUnits object with total value and units of measure for the GrunItem
@@ -183,6 +189,25 @@ struct std::formatter<TotalAndUnit> : std::formatter<std::string>
 };
 
 /**
+ * @brief Custom formatter for ItemAndTotal struct. Allows you to easily output ItemAndTotal objects using std::println().
+ */
+template <>
+struct std::formatter<ItemAndTotal> : std::formatter<std::string> 
+{
+    // Optionally hold formatting options here if you want to support {:#}, {:.2f}, etc.
+    // For simplicity, we delegate parsing to the string formatter.
+
+    auto format(const ItemAndTotal& t, std::format_context& ctx) const 
+    {
+        // Format the object into a simple string: "Total (Unit)"
+        std::string s = std::format("{}: {}", t.itemName, t.itemTotal); // itemTotal output should be handled by the TotalAndUnit custom formatter, yes?
+        
+        // Pass the formatted string to the underlying string formatter
+        return std::formatter<std::string>::format(s, ctx);
+    }
+};
+
+/**
  * @brief Custom formatter for RelationshipSearchResult struct. Allows you to output a RelationshipSearchResult easily using std::println().
  */
 template <>
@@ -271,6 +296,8 @@ class GrunObject
 	std::string			getGrunItemListInfoAsString(const std::string dateFormat = "%d/%m/%Y");
 	std::string			getGrunObjectTotalsInfoAsString() const;
 	std::string			getObjectName();
+	ItemAndTotal		getItemQtyTotal(const size_t& index, const bool& getRounded = false);
+	std::vector<ItemAndTotal>	getItemQtyTotals(const bool& getRounded = false);
 	double				getObjectProperty(const std::string propertyName);
 	size_t				getTotalOfGrunItems();
 	size_t 				removeGrunItem(const std::string& itemName, bool removeAll = false);
