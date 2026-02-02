@@ -31,6 +31,13 @@ size_t GrunStage::createGrunObject(const std::string &shapeType, const std::stri
 	return this->addGrunObject(newGrunObject);
 }
 
+std::optional<std::reference_wrapper<GrunObject>> GrunStage::getGrunObject(const size_t index)
+{
+	// zero & out of bounds check
+	if (index >= m_objects.size()) { return std::nullopt; }
+	return m_objects[index];
+}
+
 const std::string GrunStage::getName()
 {
 		return m_name;

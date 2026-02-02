@@ -1,3 +1,5 @@
+#include <optional>
+#include <functional>
 #include <vector>
 #include "GrunObject.h"
 
@@ -16,16 +18,19 @@ class GrunStage
 	// ctr
 	GrunStage(const std::string& stageName);
 
-	size_t				addGrunObject(		const	GrunObject& 	gObject);
-	size_t				createGrunObject(	const 	std::string&	shapeType,
-											const 	std::string&	name,
-													double			x,
-													double			y,
-													double			z,
-											const	std::string&	areaType	= "horizontal",
-											const	std::string&	stage		= "");
+	size_t						addGrunObject(		const	GrunObject& 	gObject);
+	size_t						createGrunObject(	const 	std::string&	shapeType,
+													const 	std::string&	name,
+															double			x,
+															double			y,
+															double			z,
+													const	std::string&	areaType	= "horizontal",
+													const	std::string&	stage		= "");
+	std::optional
+		<std::reference_wrapper
+			<GrunObject>>		getGrunObject(		const 	size_t 			index);
 	const
-		std::string		getName();
-	size_t				rmGrunObject(		const	int&			objIndex);
-	void				setName(			const	std::string&	name);
+		std::string				getName();
+	size_t						rmGrunObject(		const	int&			objIndex);
+	void						setName(			const	std::string&	name);
 };
