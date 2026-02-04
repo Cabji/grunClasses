@@ -67,6 +67,8 @@ struct ItemAndTotal
  */
 struct GrunObjectTotals
 {
+	friend class GrunObject;
+	
 	private: 
 	// maps for storing aggregated totals data about a GrunObject's GrunItems
 	std::unordered_map<std::string, TotalAndUnit>	_labourTotal;
@@ -272,8 +274,8 @@ class GrunObject
 												const std::string&	relComment		= ""
 												);
 	size_t				rmGrunItemRelationship(	GrunItem&			item,
-												const std::string& relationship		= "",
-												const std::string& relComment		= ""
+												const std::string& 	relationship	= "",
+												const std::string& 	relComment		= ""
 												);
 
 
@@ -319,10 +321,18 @@ class GrunObject
 	double										m_circumference;		// the circumference of the shape if it's a Circle.
 	std::vector<GrunItem>						m_items;				// std::vector of GrunItems associated to the GrunObject
 	GrunObjectTotals							m_objectTotals;			// an object that holds Totals data about the GrunItems in this GrunObject
-	std::unordered_map
-		<std::string, 
-		 TotalAndUnit
-		>GrunObjectTotals::*					m_totalsPtrs[];
+	
+	using MapMemberPtr = 	std::unordered_map<std::string, TotalAndUnit>GrunObjectTotals::*;
+	static constexpr 
+	std::array
+		<
+		MapMemberPtr, 
+		GrunObjectTotals::getMapCount()
+	>											m_totalsPtrs	= 	{
+																		&GrunObjectTotals::_labourTotal,
+																		&GrunObjectTotals::_materialTotalsSpatial,
+																		&GrunObjectTotals::_materialTotalsItemUnit
+																	};
 
 	/**
      * @brief Static constant map that links GrunObject properties (as strings) to their dimensional exponent value.
