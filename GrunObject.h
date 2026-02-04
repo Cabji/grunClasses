@@ -68,7 +68,7 @@ struct ItemAndTotal
 struct GrunObjectTotals
 {
 	friend class GrunObject;
-	
+
 	private: 
 	// maps for storing aggregated totals data about a GrunObject's GrunItems
 	std::unordered_map<std::string, TotalAndUnit>	_labourTotal;
@@ -238,8 +238,10 @@ struct std::formatter<RelationshipSearchResult>
 class GrunObject
 {
 	public:
-    explicit		GrunObject(const std::string &shapeType,
-					   const std::string &name,
+	GrunObject()	= default;
+
+    explicit		GrunObject(const std::string &shapeType = "unknown",
+					   const std::string &name = "DefaultName",
                        double m_x = 0.0,
                        double m_y = 0.0, 
 					   double m_z = 0.0,

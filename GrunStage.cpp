@@ -24,9 +24,7 @@ size_t GrunStage::addGrunObject(const GrunObject& gObject)
 
 size_t GrunStage::createGrunObject(const std::string &shapeType, const std::string &name, double x, double y, double z, const std::string &areaType, const std::string &stage)
 {
-	// check name argument and set if needed
-	(name.empty()) ? this->getName() : name;
-	// use GrunObject ctr to create the new GrunObject
+	// use GrunObject ctr to create the new GrunObject - we can rely on default values if no values are given in the arguments
 	GrunObject	newGrunObject(shapeType, name, x, y, z, areaType, stage);
 	return this->addGrunObject(newGrunObject);
 }
