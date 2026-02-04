@@ -33,4 +33,5 @@ class GrunStage
 		std::string				getName();
 	size_t						rmGrunObject(		const	int&			objIndex);
 	void						setName(			const	std::string&	name);
+	size_t						size();
 };
