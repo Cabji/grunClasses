@@ -63,3 +63,13 @@ void GrunStage::setName(const std::string& name)
 	m_name = name;
 	return;
 }
+
+/**
+ * @brief Reutrns how many GrunObjects exist in this GrunStage instance
+ * 
+ * @return size_t	- the number of GrunItems that are housed in the instance's m_objects vector
+ */
+size_t GrunStage::size()
+{
+	return m_objects.size();
+}
