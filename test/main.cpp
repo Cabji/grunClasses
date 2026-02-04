@@ -21,7 +21,7 @@ int main ()
 	if (objWrap) 
 	{ 
 		// add GrunItems to the 3D Solid via the reference we made
-		auto object = objWrap->get(); 
+		auto& object = objWrap->get(); 
 		object.addGrunItem("Excavator","8","","","hour(s)","*0.5");
 		object.addGrunItem("Trench Mesh - 3 Bar TM11","1L","","/5.4","length(s)","/6");
 		object.addGrunItem("Chairs - Trench Mesh","1L@0.8","","/25","bag(s) of 25","/4");
@@ -29,20 +29,18 @@ int main ()
 		object.addGrunItem("Delivery - Steel","1","To site address","","delivery(ies)","*0.5");
 		object.addGrunItem("Concrete - 20/20 (Footings)","V","","","m3","*1.55");
 		// now the program knows what's needed to construct the SF1 Footing
-		std::println("Fetched object's name is '{}'",object.getObjectName());
 	}
-	else { std::println("Couldn't fetch object in index {}. (doesn't exist!)",0); }
 
 	// create a GrunStage for the Slab that will be built on top of the footing
 	GrunStage stageSlab("Slab");
 	// create a GrunObject (3D Solid) in the Slab stage object that represents the slab in 3D space
-	stageSlab.createGrunObject("rectangle", "SF1", 9.0, 6.0, 0.1, "horizontal");
+	stageSlab.createGrunObject("rectangle", "Slab", 9.0, 6.0, 0.1, "horizontal");
 	// temporarily get a reference the 3D Solid
 	objWrap = stageSlab.getGrunObject(0);
 	if (objWrap) 
 	{ 
 		// add GrunItems to the 3D Solid via the reference we made
-		auto object = objWrap->get(); 
+		auto& object = objWrap->get(); 
 		object.addGrunItem("Delivery - Subgrade","1","To site address","","delivery(ies)","*0.5");
 		object.addGrunItem("Subgrade - Fines","0.05A","","","m3","*1");
 		object.addGrunItem("Formwork - 300 Shuttered","2L2W","","","m","/2.46");
@@ -57,16 +55,23 @@ int main ()
 		// now the program knows what's needed to construct the SF1 Footing
 		std::println("Fetched object's name is '{}'",object.getObjectName());
 	}
-	else { std::println("Couldn't fetch object in index {}. (doesn't exist!)",0); }
 
 	// push the GrunStages into our project vector so we can loop through them for output
 	project.push_back(stageFootings);
 	project.push_back(stageSlab);
 
 	std::println("Project has {} stages",project.size());
-	for (auto stage : project)
+	for (auto& stage : project)
 	{
-		
+		std::println("Stage: {}",stage.getName());
+		for (auto i = 0; i < stage.size(); ++i)
+		{
+			// get the current GrunObject
+			auto wrappedObject = stage.getGrunObject(i);
+			if (!wrappedObject) { continue; }
+			auto& currentObject = wrappedObject->get();
+			std::println("GrunObject [{}] Item List information:\n{}", currentObject.getObjectName(), currentObject.getGrunItemListInfoAsString("%Y%m%d %H%M%S"));
+		}
 	}
 
 	// GrunObject	slab("rectangle", "Slab A", 30, 3.1, 0.15, "horizontal", "Stage 1");
