@@ -9,6 +9,7 @@ cmake_minimum_required(VERSION 3.20)
       set(projectName "GrunObject")
       # names of source files in your project here (.cpp only)
       set(SOURCES 
+	  	GrunStage.cpp
 		GrunObject.cpp
 		GrunItem.cpp
       )
