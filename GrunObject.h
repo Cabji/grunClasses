@@ -260,55 +260,62 @@ class GrunObject
      * @param unit The SpatialExponentValue to convert.
      * @return The integer exponent value.
      */
-    static int 					asInt(SpatialExponentValue unit);
+    static int 			asInt(SpatialExponentValue unit);
 
 
-	bool			addGrunItem( std::string name,
-								 std::string relationship = "", 
-								 std::string relComment = "",
-								 std::string quantityFormula = "",
-								 std::string units = "unit(s)", 
-								 std::string primaryLabourFormula = ""
-							   );
-
-	size_t				addGrunItemRelationship(GrunItem&			item,
-												const std::string&	relationship	= "", 
-												const std::string&	relComment		= ""
-												);
-	size_t				rmGrunItemRelationship(	GrunItem&			item,
-												const std::string& 	relationship	= "",
-												const std::string& 	relComment		= ""
+	bool							addGrunItem(				std::string 				name,
+																std::string 				relationship 			= "", 
+																std::string 				relComment 				= "",
+																std::string 				quantityFormula 		= "",
+																std::string 				units 					= "unit(s)", 
+																std::string 				primaryLabourFormula 	= ""
 												);
 
+	size_t							addGrunItemRelationship(	GrunItem&					item,
+																const std::string&			relationship			= "", 
+																const std::string&			relComment				= ""
+															);
+	size_t							rmGrunItemRelationship(		GrunItem&					item,
+																const std::string& 			relationship			= "",
+																const std::string& 			relComment				= ""
+															);
 
-	std::vector<size_t>	findGrunItemByItemName(	const std::string& findItemName, 
-												bool useExactSearch = true
-											  ) const;
-	std::vector<RelationshipSearchResult>	findRelationshipByStrings(	const size_t itemIndex,
-																		const std::string& relationship,
-																		const std::string& relComment,
-																		const bool useExactSearch = true
-																	 ) const;
-	std::vector<RelationshipSearchResult>	findRelationshipByStrings(	const std::vector<size_t> itemIndices,
-																		const std::string& relationship,
-																		const std::string& relComment,
-																		const bool useExactSearch = true
-																	 ) const;
-	int					calculateGrunObjectTotals();
-    double 				getAspectRatio();
-	GrunItem&			getGrunItemByIndex(const int index);
-	std::string			getGrunItemListInfoAsString(const std::string dateFormat = "%d/%m/%Y");
-	std::string			getGrunObjectTotalsInfoAsString() const;
-	std::string			getObjectName();
-	ItemAndTotal		getItemQtyTotal(const size_t& index, const bool& getRounded = false);
+
 	std::vector
-		<ItemAndTotal>	getItemQtyTotals(const bool& getRounded = false);
-	double				getObjectProperty(const std::string propertyName);
-	size_t				getTotalOfGrunItems();
-	size_t 				removeGrunItem(const std::string& itemName, bool removeAll = false);
-	bool				removeGrunItem(size_t index);
-	size_t				removeGrunItem(std::vector<size_t> indices);
-
+		<size_t>					findGrunItemByItemName(		const std::string&			findItemName, 
+																bool						useExactSearch			= true
+														) const;
+	std::vector
+		<RelationshipSearchResult>	findRelationshipByStrings(	const size_t 				itemIndex,
+																const std::string&			relationship,
+																const std::string&			relComment,
+																const bool 					useExactSearch 			= true
+															) const;
+	std::vector
+		<RelationshipSearchResult>	findRelationshipByStrings(	const std::vector<size_t>	itemIndices,
+																const std::string& 			relationship,
+																const std::string& 			relComment,
+																const bool 					useExactSearch			= true
+															) const;
+	int								calculateGrunObjectTotals();
+    double 							getAspectRatio();
+	GrunItem&						getGrunItemByIndex(			const int 					index);
+	std::string						getGrunItemListInfoAsString(const std::string 			dateFormat				= "%d/%m/%Y");
+	std::string						getGrunObjectTotalsInfoAsString() const;
+	std::string						getObjectName();
+	ItemAndTotal					getItemQtyTotal(			const size_t& 				index, 
+																const bool& 				getRounded				= false
+													);
+	std::vector
+		<ItemAndTotal>				getItemQtyTotals(			const bool& 				getRounded				= false);
+	double							getObjectProperty(			const std::string			propertyName);
+	size_t							getTotalOfGrunItems();
+	size_t 							removeGrunItem(				const std::string&			itemName,
+																bool						removeAll				= false);
+	bool							removeGrunItem(				size_t						index);
+	size_t							removeGrunItem(				std::vector<size_t>			indices);
+	size_t							size();
+	
 	private:
 	std::string									m_name;					// the GrunObject's name
 	std::string									m_stage;				// the GrunObject's stage assignment

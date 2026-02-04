@@ -540,7 +540,17 @@ size_t GrunObject::removeGrunItem(std::vector<size_t> indices)
 }
 
 /**
- * @brief Gets a string that will describe the secondary materials in the GrunObject (mostly for debugging output)
+ * @brief Returns the number of items in the m_items vector
+ * 
+ * @return size_t 
+ */
+size_t GrunObject::size()
+{
+	return m_items.size();
+}
+
+/**
+ * @brief Gets a string that will describes the items in the GrunObject (mostly for debugging output)
  * @return std::string showing information about GrunItems in the GrunObject
  */
 std::string GrunObject::getGrunItemListInfoAsString(const std::string dateFormat)
