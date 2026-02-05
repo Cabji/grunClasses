@@ -22,6 +22,17 @@ size_t GrunStage::addGrunObject(const GrunObject& gObject)
 	return m_objects.size();
 }
 
+/**
+ * @brief Calculates and updates the m_rateCost member's value (the total cost to construct this Stage)
+ * 
+ * @return (size_t)			- the rateCost as an unsigned integer (no decimal places)
+ */
+size_t GrunStage::calculateRateCost()
+{
+	//
+	return size_t();
+}
+
 size_t GrunStage::createGrunObject(const std::string &shapeType, const std::string &name, double x, double y, double z, const std::string &areaType, const std::string &stage)
 {
 	// use GrunObject ctr to create the new GrunObject - we can rely on default values if no values are given in the arguments
@@ -72,4 +83,24 @@ void GrunStage::setName(const std::string& name)
 size_t GrunStage::size()
 {
 	return m_objects.size();
+}
+
+/**
+ * @brief set the Stage's m_rateUnit value using an integer (only 0-3 are valid values)
+ * 
+ * @param spatialUnitAsInt	(size_t)	- integer value that represents the desired SpatialExponentValue for the Stage's rateUnit
+ * @return (bool)						- returns true if the input argument was valid (0-3) otherwise returns false to indicate we set to 'None' due to a data input problem
+ */
+bool GrunStage::setRateUnit(const size_t &spatialUnitAsInt)
+{
+	if (spatialUnitAsInt <= 3)
+	{
+		m_rateUnit = static_cast<SpatialExponentValue>(spatialUnitAsInt);
+		return true;
+	}
+	else
+	{
+		m_rateUnit = SpatialExponentValue::None;
+		return false;
+	}
 }
