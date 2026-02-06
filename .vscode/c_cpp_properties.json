@@ -3,7 +3,8 @@
         {
             "name": "Win32",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/**",
+				"C:/dev/cpp/include/**"
             ],
             "defines": [
                 "_DEBUG",
@@ -12,7 +13,8 @@
             ],
             "cStandard": "c17",
             "cppStandard": "c++23",
-            "compilerPath": "C:/dev/cpp/ucrt64/bin/g++.exe"
+            "compilerPath": "C:/dev/cpp/ucrt64/bin/g++.exe",
+            "configurationProvider": "ms-vscode.cmake-tools"
         }
     ],
     "version": 4
