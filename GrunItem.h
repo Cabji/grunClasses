@@ -80,7 +80,7 @@ class GrunItem
 	std::string								_itemSupplier				= "";
 	std::string 							_itemSupplierSKU			= "";
 	std::string								_itemSupplierDescription	= "";
-	double									_itemCostPerUnit			= 0.0;
+	long long								_itemCostPerUnit			= 0;										// cost per GrunItem unit stored as signed 64 bit integer (long long)
 	std::string 							_itemQuantityUnits			= "unit(s)";
 	std::string								_itemPrimaryLabourUnits		= "hour(s)";
 	bool									_hideFromClientView			= false;
