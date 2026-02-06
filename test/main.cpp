@@ -1,12 +1,64 @@
+#include <cstdlib>
+#include <filesystem>
 #include <format>
+#include <iostream>
 #include <print>
 #include <ranges>
+#include <string>
 #include <vector>
 #include "GrunStage.h"
+#include "DatabaseManager.h"
 
+namespace fs = std::filesystem;
+
+fs::path	get_app_data_path() 
+{
+	fs::path	home;
+#ifdef _WIN32
+	// windows based
+	const char*	drive	= std::getenv("HOMEDRIVE");
+	const char*	path	= std::getenv("HOMEPATH");
+	if (drive && path)
+		home = fs::path(drive) / path;
+	else
+	{
+		const char*	userProfile	= std::getenv("USERPROFILE");
+		if (userProfile)
+			home = fs::path(userProfile);
+	}
+#else
+	// unix based
+	const char*	homeEnv	= std::getenv("HOME");
+	if (homeEnv)
+		home = fs;:path(homeEnv);
+#endif
+
+	// append the app's config folder
+	fs::path	appPath	= home / ".grun";
+	// create directory if it doesn't exist
+	if (!home.empty() && !fs::exists(appPath))
+		fs::create_directories(appPath);
+
+		return appPath;
+}
 
 int main ()
 {
+
+// DatabaseManager testing
+	fs::path	configFolder	= get_app_data_path();
+	if (configFolder.empty()) 
+	{
+		std::println("Fatal Error: Could not create program config folder in user's home folder, so quitting.");
+		return 1;
+	}
+
+	std::string	dbPath	= (configFolder / "GrunInventory.db").string();
+	// create a database instance
+	DatabaseManager db(dbPath);
+	db.initializeSchema();
+
+// Grun Classes testing	
 	// create a vector to store the stages (we will make a Project class later on)
 	std::vector<GrunStage> project;
 	// create a GrunStage for the Footings stage of this project
@@ -52,8 +104,7 @@ int main ()
 		object.addGrunItem("Delivery - Steel","1","To site address","","delivery(ies)","*0.5");
 		object.addGrunItem("Concrete - 20/20","V","","","m3","*3.2");
 		object.addGrunItem("Strip Formwork","2L2W","","","m","/6");
-		// now the program knows what's needed to construct the SF1 Footing
-		std::println("Fetched object's name is '{}'",object.getObjectName());
+		// now the program knows what's needed to construct the Slab
 	}
 
 	// push the GrunStages into our project vector so we can loop through them for output
