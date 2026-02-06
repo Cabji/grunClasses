@@ -889,9 +889,6 @@ bool GrunObject::interpretGrunItemSpatialValues(GrunItem &item)
 		coreValueSet.baseExpressionIntrpForSU = saneBaseExpr;
 
 	// 2: set a few values that are mostly only useful for bug tracking if you get bugs appearing
-
-		// i think this is deprecated - total Spatial Value calculated from the interpretted expression
-		// int exprTotalSV	= 0;
 		
 		// the saneBaseExpr with GrunObject Tokens switched out for their numeric worth
 		std::string numericExpr = saneBaseExpr;

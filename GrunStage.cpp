@@ -29,7 +29,7 @@ size_t GrunStage::addGrunObject(const GrunObject& gObject)
  */
 size_t GrunStage::calculateRateCost()
 {
-	//
+	// we really need the GrunItem class to have a costPerUnit value assigned to each item before we can get this method completed
 	return size_t();
 }
 
