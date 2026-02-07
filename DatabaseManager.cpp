@@ -1,43 +1,58 @@
 #include "DatabaseManager.h"
 
+
 DatabaseManager::DatabaseManager(const std::string& dbPath)
-	: m_db(dbPath, SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE)
+    : m_db(dbPath, SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE)
 {
 }
 
 void DatabaseManager::initializeSchema() 
 {
+    // 0. Ensure we have a version tracking table
+    m_db.exec("CREATE TABLE IF NOT EXISTS SchemaVersion (version INTEGER PRIMARY KEY);");
+    
+    // Get current version (default to 0 if table is empty)
+    int currentVersion = 0;
+    SQLite::Statement query(m_db, "SELECT version FROM SchemaVersion");
+    if (query.executeStep()) {
+        currentVersion = query.getColumn(0).getInt();
+    } else {
+        m_db.exec("INSERT INTO SchemaVersion (version) VALUES (0)");
+    }
+
     SQLite::Transaction transaction(m_db);
 
-    // 1. The Core Product Catalog
-    m_db.exec("CREATE TABLE IF NOT EXISTS MasterProducts ("
-              "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-              "name TEXT UNIQUE NOT NULL,"
-              "category TEXT,"
-              "base_unit TEXT NOT NULL"
-              ");");
+    // --- Version 1: Initial Tables ---
+    if (currentVersion < 1) {
+        // The ONLY table needed for the Standalone MVP
+    	m_db.exec("CREATE TABLE IF NOT EXISTS UserInventory ("
+        	      "id INTEGER PRIMARY KEY AUTOINCREMENT,"							// primary key for database use
+            	  "item_name TEXT UNIQUE NOT NULL,"									// user-friendly name of the item
+				  "item_category TEXT,"												// category for the item
+				  "item_qty_unit TEXT NOT NULL,"									// m, m2, m3, each
+				  "item_qty_formula TEXT DEFAULT '',"								// the RHS of formula to convert from SpatialQty to ItemQty (e.g., '/ 12.5')
+				  "item_cost_per_unit_cents INTEGER DEFAULT 0,"						// item cost per unit in cents (no decimals!)
+				  "item_round_up_factor REAL DEFAULT 1.0,"							// the round up factor (0.2 for concrete, 1 for bag of chairs etc.)
+				  "item_primary_labour_formula TEXT DEFAULT '',"					// the RHS of formula to convert from ItemQty to Primary Labour in labour units
+				  "item_primary_labour_units TEXT DEFAULT 'hour(s)',"				// the units for the Primary Labour value
+				  "default_hide_from_client_view INTEGER DEFAULT 0,"				// do we hide the item from the Client View by default?
+				  "item_client_view_message TEXT DEFAULT '',"						// the message to show on the client view for this Item in the Job Logistics area
+				  "lkgw_item_info_updated INTEGER DEFAULT (strftime('%s','now'))"	// timestamp in unix format of when the item's database record was last updated
+				  ");");
 
-    // 2. The Supplier Price Matrix (The "Marketplace")
-    m_db.exec("CREATE TABLE IF NOT EXISTS SupplierOffers ("
-              "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-              "product_id INTEGER NOT NULL,"
-              "supplier_name TEXT NOT NULL,"
-              "price_level TEXT DEFAULT 'Retail'," // Retail, Trade, Account
-              "cost_cents INTEGER NOT NULL,"
-              "FOREIGN KEY(product_id) REFERENCES MasterProducts(id),"
-              "UNIQUE(product_id, supplier_name, price_level)"
-              ");");
+        currentVersion = 1;
+    }
 
-    // 3. User Customizations (The "Aliases")
-    m_db.exec("CREATE TABLE IF NOT EXISTS UserInventory ("
-              "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-              "master_product_id INTEGER NOT NULL,"
-              "alias_name TEXT UNIQUE,"
-              "preferred_offer_id INTEGER,"
-              "manual_price_override_cents INTEGER," // NULL if using Supplier price
-              "FOREIGN KEY(master_product_id) REFERENCES MasterProducts(id),"
-              "FOREIGN KEY(preferred_offer_id) REFERENCES SupplierOffers(id)"
-              ");");
+    // --- Version 2: if we do updates we can do schema additions/adjustments here
+    // if (currentVersion < 2) {
+
+    //     currentVersion = 2;
+    // }
+
+    // Finalize the update
+    SQLite::Statement updateVer(m_db, "UPDATE SchemaVersion SET version = ?");
+    updateVer.bind(1, currentVersion);
+    updateVer.exec();
 
     transaction.commit();
 }
