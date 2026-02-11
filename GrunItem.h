@@ -1,3 +1,4 @@
+#pragma once
 #include <chrono>
 #include <ctime>
 
@@ -65,7 +66,6 @@ class GrunItem
 	double									_spatialTotalQuantity		= 0.0;							// the total 'Spatial Quantity' value for all relationships in the GrunItem's instance
 	double									_itemTotalQuantity			= 0.0;							// the total 'Item Quantity' value for all relationships in the GrunItem's instance
 	double									_itemTotalPrimaryLabour		= 0.0;
-	double									_itemRoundUpFactor			= 1.0;
 	double									_itemTotalQuantityRounded	= 0.0;
 	double									_itemWasteFactor			= 0.0;
 	double									_itemWasteAllowance			= 0.0;
@@ -77,6 +77,7 @@ class GrunItem
 	std::string 							_itemPrimaryLabourFormula	= "";
 	std::string 							_itemQuantityFormula		= "";
 	std::string								_itemCategory				= "";
+	double									_itemRoundUpFactor			= 1.0;
 	std::string								_itemSupplier				= "";
 	std::string 							_itemSupplierSKU			= "";
 	std::string								_itemSupplierDescription	= "";
