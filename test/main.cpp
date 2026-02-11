@@ -8,6 +8,7 @@
 #include <vector>
 #include "GrunStage.h"
 #include "DatabaseManager.h"
+#include "InventoryManager.h"
 
 namespace fs = std::filesystem;
 
@@ -45,6 +46,55 @@ fs::path	get_app_data_path()
 int main ()
 {
 
+// test the Inventory Manager
+	try {
+        // 1. Initialize Database
+		std::string dbFilename = get_app_data_path().string().append("/GrunInventory.db");
+        SQLite::Database db(dbFilename, SQLite::OPEN_READONLY);
+        InventoryManager inventory(db);
+
+        std::string searchTerm;
+        std::println("--- Grun Bare Basics Inventory Test (C++23) ---");
+
+        while (true) {
+            std::print("\nEnter item to search (or 'exit' to quit): ");
+            if (!std::getline(std::cin, searchTerm) || searchTerm == "exit") break;
+
+            // 2. Perform the Bare Basics Search
+            auto results = inventory.search(searchTerm);
+
+            if (results.empty()) {
+                std::println("No items found matching '{}'", searchTerm);
+                continue;
+            }
+
+            // 3. Display Results and verify Hydration
+            std::println("Found {} items:", results.size());
+            
+            for (const auto& item : results) {
+                std::println("{:-<42}", ""); // Horizontal separator
+                std::println("Name:     {}", item._itemName);
+                std::println("Category: {}", item._itemCategory);
+                
+                // Formatting currency to 2 decimal places using format specifiers
+                std::println("Cost:     ${:.2f} per {}", 
+                             (item._itemCostPerUnit / 100.0), 
+                             item._itemQuantityUnits);
+                
+                std::println("Formula:  {}", item._itemQuantityFormula);
+                std::println("Labour:   {} {}", 
+                             item._itemPrimaryLabourFormula, 
+                             item._itemPrimaryLabourUnits);
+            }
+        }
+    }
+    catch (const std::exception& e) {
+        std::println(std::cerr, "CRITICAL ERROR: {}", e.what());
+        return 1;
+    }
+
+    return 0;
+/*
 // DatabaseManager testing
 	fs::path	configFolder	= get_app_data_path();
 	if (configFolder.empty()) 
@@ -124,25 +174,7 @@ int main ()
 			std::println("GrunObject [{}] Item List information:\n{}", currentObject.getObjectName(), currentObject.getGrunItemListInfoAsString("%Y%m%d %H%M%S"));
 		}
 	}
-
-	// GrunObject	slab("rectangle", "Slab A", 30, 3.1, 0.15, "horizontal", "Stage 1");
-	// slab.addGrunItem("Dowel R12 450 HDG","2L1W@0.6","","","bar(s)","/14");
-	// slab.addGrunItem("N12 6000","2L2W","","/5.4","length(s)","/6");
-	// slab.addGrunItem("Excavator","8","","","hour(s)","/2");
-	// slab.addGrunItem("Delivery - Sub Grade","1","","","delivery(ies)","*0.5");
-	// slab.addGrunItem("Subgrade - Fines","0.333V","Subgrade by Volume Relationship","","m3","/2");
-	// slab.addGrunItem("Delivery - Steel","1","","","delivery(ies)","*0.5");
-	// slab.addGrunItem("Ableflex - 10mm x 100mm, Stick Backed","2L2W","","/25","roll(s)","*0.5");
-	// slab.addGrunItem("Mesh SL92", "2A","","/ 12.5","mat(s)","* 0.66");
-	// slab.addGrunItem("Tie Wire (Blek)", "1","","","roll(s)","/20");
-	// slab.addGrunItem("Kahnkreet","V","","","m3","/ 2.5");
-	// slab.addGrunItem("Labour - Secondary", "1","","","hour(s)","");
-	// slab.addGrunItem("Dowel R12 450 HDG","150","","","bar(s)","/ 14");
-
-	// add additional relationship to GrunItem in index 5 (Dowel R12 450 HDG) and 10 (N12 6000)
-	// slab.addGrunItemRelationship(slab.getGrunItemByIndex(0), "5L@0.6", "5 gammon layers of dowel allegedly");
-	// slab.addGrunItemRelationship(slab.getGrunItemByIndex(1),"3.0*2L@0.4","X1: Extra Bars, Straight N12, 3.0m@0.4C");
-	// slab.addGrunItemRelationship(slab.getGrunItemByIndex(2),"0.05 * A","Subgrade by Area Relationship");
+*/
 
 /* this comment block demonstrates how to use the search methods to find relationships and their owning GrunItem locations in GrunObject::m_items
 	// search all items, for a relationship
