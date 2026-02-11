@@ -29,7 +29,7 @@ void DatabaseManager::initializeSchema()
         	      "id INTEGER PRIMARY KEY AUTOINCREMENT,"							// primary key for database use
             	  "item_name TEXT UNIQUE NOT NULL,"									// user-friendly name of the item
 				  "item_category TEXT,"												// category for the item
-				  "item_qty_unit TEXT NOT NULL,"									// m, m2, m3, each
+				  "item_qty_unit TEXT,"												// m, m2, m3, each
 				  "item_qty_formula TEXT DEFAULT '',"								// the RHS of formula to convert from SpatialQty to ItemQty (e.g., '/ 12.5')
 				  "item_cost_per_unit_cents INTEGER DEFAULT 0,"						// item cost per unit in cents (no decimals!)
 				  "item_round_up_factor REAL DEFAULT 1.0,"							// the round up factor (0.2 for concrete, 1 for bag of chairs etc.)
