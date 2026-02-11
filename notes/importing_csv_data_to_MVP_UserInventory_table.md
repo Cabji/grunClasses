@@ -41,6 +41,7 @@ When you import CSV data to the UserInventory table, you should use the command 
 ```
 sqlite3 YourSQLite3DatabaseFilename.db <<EOF
 .mode csv
+.nullvalue NULL
 CREATE TEMP TABLE staging(id, name, cat, unit, form, cost, rnd, lab_form, lab_unit, hide, msg, ts);
 .import your_import_csv_filename.csv staging
 
