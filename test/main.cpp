@@ -45,8 +45,57 @@ fs::path	get_app_data_path()
 
 int main ()
 {
+	try 
+	{
+        // 1. Initialize Database
+		std::string dbFilename = get_app_data_path().string().append("/GrunInventory.db");
+        SQLite::Database db(dbFilename, SQLite::OPEN_READONLY);
+        InventoryManager inventory(db);
 
-// test the Inventory Manager
+        GrunStage stageFootings("Footings");
+		stageFootings.createGrunObject("rectangle","SF1",50.0,0.4,0.4);
+		auto wrappedObj = stageFootings.getGrunObject(0);
+		if (wrappedObj)
+		{
+			GrunObject& sf1Obj = wrappedObj.value();
+			// user InventoryManager object to fuzzy search and find best matches for your items in the database, then add the found GrunItem using GrunObject::addItem(GrunItem&)
+			sf1Obj.addGrunItem("Excavator",1000,"8","","","hour(s)","/2");
+			sf1Obj.addGrunItem(inventory.getBestMatch("T M 11 3"));
+			sf1Obj.addGrunItem(inventory.getBestMatch("chair multi"));
+			sf1Obj.addGrunItem(inventory.getBestMatch("CONC 20/20 footings"));
+			sf1Obj.addGrunItem(inventory.getBestMatch("starter bar 1200"));
+
+			// get the concrete item so we can set its relationship string
+			std::vector<size_t> searchResult = sf1Obj.findGrunItemByItemName("Concrete*20/20*", false);
+			if (searchResult.size() > 0)
+			{
+				GrunItem& concItem = sf1Obj.getGrunItemByIndex(searchResult[0]);
+				concItem.updateRelationshipValue(0,"V","");
+				// we want to recalculate the GrunItem's info after a relationship update, but the calculateGrunItem method is private in the GrunObject class
+				// we can create a updateGrunItemRelationship() method in GrunObject and we can pass it a reference to the GrunItem to update the relationship in, but also need to pass an index for the relationship in the item's _itemCoreValues member
+				// if we do this, we may as well write a method that will get a reference to the RelationshipValue we want to update (requesting it via index values is my guess)
+				// ask gemmy for advice about the best way to go here.
+			}
+			else
+			{
+				std::println("searchResult.size() was 0 or less.");
+			}
+			
+			std::println("{}",sf1Obj.getGrunItemListInfoAsString("%Y%m%d",32));
+		}
+		else
+		{
+			std::println("Failed to find an object in m_objects[0]. Did you acutally add any objects to the stage?");
+		}
+    }
+    catch (const std::exception& e) {
+        std::println(std::cerr, "CRITICAL ERROR: {}", e.what());
+        return 1;
+    }
+
+    return 0;
+
+/* test the Inventory Manager
 	try {
         // 1. Initialize Database
 		std::string dbFilename = get_app_data_path().string().append("/GrunInventory.db");
@@ -78,7 +127,7 @@ int main ()
                 
                 // Formatting currency to 2 decimal places using format specifiers
                 std::println("Cost:     ${:.2f} per {}", 
-                             (item._itemCostPerUnit / 100.0), 
+                             (item._itemCostPerUnitCents / 100.0), 
                              item._itemQuantityUnits);
                 
                 std::println("Formula:  {}", item._itemQuantityFormula);
@@ -94,6 +143,8 @@ int main ()
     }
 
     return 0;
+*/
+
 /*
 // DatabaseManager testing
 	fs::path	configFolder	= get_app_data_path();
