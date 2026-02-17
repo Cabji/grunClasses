@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <vector>
 #include <string>
 #include <SQLiteCpp/SQLiteCpp.h>
@@ -17,8 +18,11 @@ class InventoryManager
 	// ctr
 	InventoryManager(SQLite::Database& db) : m_db(db) {}
 
-	GrunItem				getById(const int&			id);
-	std::vector<GrunItem>	search(	const std::string&	nameQuery);				// bare basic search
+	GrunItem				getById(		const int&			id);
+	std::vector<GrunItem>	search(			const std::string&	nameQuery,
+											const bool			useFuzzySearch = false);
+	GrunItem				getBestMatch(	const std::string&	nameQuery, 
+											const bool			useFuzzySearch = true);
 	
 	private:
 	SQLite::Database&		m_db;
