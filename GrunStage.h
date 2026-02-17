@@ -8,6 +8,18 @@
 #define CLASS_NAME "GrunStage"
 #endif
 
+struct StageResults
+{
+	long long	totalCostCents	= 0;
+	double		totalAreaM2		= 0.0;
+	
+	// method to get the cost-per m2 for this stage
+	double getRate() const 
+	{
+		return (totalAreaM2 > 0) ? (totalCostCents / 100.0) / totalAreaM2 : 0.0;
+	}
+};
+
 class GrunStage
 {
 	private:
@@ -29,6 +41,7 @@ class GrunStage
 	GrunStage(const std::string& stageName);
 
 	size_t						addGrunObject(		const	GrunObject& 	gObject);
+	StageResults				calculateMVPAreaRate(const	bool			rounded);
 	size_t						calculateRateCost();
 	size_t						createGrunObject(	const 	std::string&	shapeType,
 													const 	std::string&	name,

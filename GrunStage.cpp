@@ -22,6 +22,16 @@ size_t GrunStage::addGrunObject(const GrunObject& gObject)
 	return m_objects.size();
 }
 
+StageResults GrunStage::calculateMVPAreaRate(const bool rounded)
+{
+	StageResults results;
+	for (GrunObject& obj : m_objects)
+	{
+		results.totalCostCents += obj.getTotalCostOfObject(rounded);
+	}
+	return StageResults();
+}
+
 /**
  * @brief Calculates and updates the m_rateCost member's value (the total cost to construct this Stage)
  * 
