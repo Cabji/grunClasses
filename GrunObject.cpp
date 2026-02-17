@@ -230,12 +230,33 @@ int GrunObject::asInt(SpatialExponentValue unit) {
  * @param primaryLabourFormula formula applied to quantity of this Item to calculate Primary Labour quantity (empty by default)
  * @return true if successful, false if failure.
  */
-bool GrunObject::addGrunItem(std::string name, std::string relationship, std::string relComment, std::string quantityFormula, std::string units, std::string primaryLabourFormula)
+bool GrunObject::addGrunItem(std::string name, int libraryID, std::string relationship, std::string relComment, std::string quantityFormula, std::string units, std::string primaryLabourFormula)
 {
 	// zero check
-	GrunItem newItem(name, relationship, relComment, quantityFormula, units, primaryLabourFormula);
+	GrunItem newItem(name, libraryID, relationship, relComment, quantityFormula, units, primaryLabourFormula);
 	calculateGrunItemData(newItem);
 	m_items.emplace_back(newItem);
+	return true;
+}
+
+bool GrunObject::addGrunItem(GrunItem item)
+{
+	// check if the object we were passed has valid data or not, return out false if it's INVALID
+	if (item == GrunItem::INVALID) 
+	{
+		std::println("Invalid GrunItem passed to GrunObject::addGrunItem(GrunItem &item)");
+		return false;
+	}
+
+	// check the item has a library id value
+	if (item._libraryId <= 0)
+	{
+		std::println("Library ID of GrunItem passed to GrunObject::addGrunItem(GrunItem &item) was <= 0 so returning false");
+		return false;
+	}
+
+	this->calculateGrunItemData(item);
+	m_items.push_back(item);
 	return true;
 }
 
@@ -454,6 +475,16 @@ size_t GrunObject::getTotalOfGrunItems()
 	return m_items.size();
 }
 
+long long GrunObject::getTotalCostOfObject(const bool& getRounded)
+{
+	long long result = 0;
+	for (const auto& item : m_items)
+	{		
+		(getRounded) ? result += item._itemTotalQuantityRounded * item._itemCostPerUnitCents : result += item._itemTotalQuantity * item._itemCostPerUnitCents;
+	}
+	return result;
+}
+
 /**
  * @brief Removes one (first found) or all GrunItems with the specified name from the GrunObject's m_items.
  * @param itemName The name of the GrunItem(s) to remove.
@@ -551,15 +582,17 @@ size_t GrunObject::size()
 
 /**
  * @brief Gets a string that will describes the items in the GrunObject (mostly for debugging output)
- * @return std::string showing information about GrunItems in the GrunObject
+ * @param	dateFormat		(std::string)	- a str that defines the format for the date used for the LKGW calculated time for GrunItems
+ * @param	itemNameWidth	(size_t)		- an unsigned
+ * @return	std::string showing information about GrunItems in the GrunObject
  */
-std::string GrunObject::getGrunItemListInfoAsString(const std::string dateFormat)
+std::string GrunObject::getGrunItemListInfoAsString(const std::string dateFormat, const size_t itemNameWidth)
 {
 	std::string returnVal;
 	if (!m_items.empty()) { returnVal = "GrunItems in Element '" + m_name +"'\n"; }
 	for (auto item : m_items)
 	{
-		returnVal += std::format("{:<16} ",item._itemName.substr(0,16));
+		returnVal += std::format("{:<{}} ",item._itemName.substr(0,itemNameWidth), itemNameWidth);
 		
 		// deal with item's CoreValue vector
 		int			numRels			= item.getNumberOfRelationships();

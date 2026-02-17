@@ -85,7 +85,6 @@ struct GrunObjectTotals
 		&GrunObjectTotals::_materialTotalsItemUnit
 	};
 
-
 	/**
      * @brief Returns the number of total maps available.
      * @return The size of the MAP_PTRS array.
@@ -238,7 +237,7 @@ struct std::formatter<RelationshipSearchResult>
 */
 class GrunObject
 {
-	public:
+public:
 	GrunObject()	= default;
 
     explicit		GrunObject(const std::string &shapeType = "unknown",
@@ -254,23 +253,25 @@ class GrunObject
      * @param propertyName The property name token (e.g., "L", "A", "Volume").
      * @return The corresponding SpatialExponentValue enum. Defaults to Unitless (0) if not found.
      */
-    static SpatialExponentValue getSpatialUnit(const std::string& propertyName);
+    static SpatialExponentValue 	getSpatialUnit(const std::string& propertyName);
 
     /**
      * @brief Converts a SpatialExponentValue enum to its underlying integer value (0, 1, 2, or 3).
      * @param unit The SpatialExponentValue to convert.
      * @return The integer exponent value.
      */
-    static int 			asInt(SpatialExponentValue unit);
+    static int 						asInt(SpatialExponentValue unit);
 
 
 	bool							addGrunItem(				std::string 				name,
+																int							libraryID,
 																std::string 				relationship 			= "", 
 																std::string 				relComment 				= "",
 																std::string 				quantityFormula 		= "",
 																std::string 				units 					= "unit(s)", 
 																std::string 				primaryLabourFormula 	= ""
 												);
+	bool							addGrunItem(				GrunItem					item);
 
 	size_t							addGrunItemRelationship(	GrunItem&					item,
 																const std::string&			relationship			= "", 
@@ -281,6 +282,8 @@ class GrunObject
 																const std::string& 			relComment				= ""
 															);
 
+	bool							updateGrunItemRelationship(	
+															);
 
 	std::vector
 		<size_t>					findGrunItemByItemName(		const std::string&			findItemName, 
@@ -301,7 +304,9 @@ class GrunObject
 	int								calculateGrunObjectTotals();
     double 							getAspectRatio();
 	GrunItem&						getGrunItemByIndex(			const int 					index);
-	std::string						getGrunItemListInfoAsString(const std::string 			dateFormat				= "%d/%m/%Y");
+	std::string						getGrunItemListInfoAsString(const std::string 			dateFormat				= "%d/%m/%Y",
+																const size_t				itemNameWidth = 16
+															   );
 	std::string						getGrunObjectTotalsInfoAsString() const;
 	std::string						getObjectName();
 	ItemAndTotal					getItemQtyTotal(			const size_t& 				index, 
@@ -311,13 +316,14 @@ class GrunObject
 		<ItemAndTotal>				getItemQtyTotals(			const bool& 				getRounded				= false);
 	double							getObjectProperty(			const std::string			propertyName);
 	size_t							getTotalOfGrunItems();
+	long long						getTotalCostOfObject(		const bool&					getRounded				= false);
 	size_t 							removeGrunItem(				const std::string&			itemName,
 																bool						removeAll				= false);
 	bool							removeGrunItem(				size_t						index);
 	size_t							removeGrunItem(				std::vector<size_t>			indices);
 	size_t							size();
 	
-	private:
+private:
 	std::string									m_name;					// the GrunObject's name
 	std::string									m_stage;				// the GrunObject's stage assignment
 	ShapeType									m_type;					// the basic 2D geometric shape this object is based upon (Rectangle, Triangle etc.)
@@ -331,6 +337,9 @@ class GrunObject
 	double										m_circumference;		// the circumference of the shape if it's a Circle.
 	std::vector<GrunItem>						m_items;				// std::vector of GrunItems associated to the GrunObject
 	GrunObjectTotals							m_objectTotals;			// an object that holds Totals data about the GrunItems in this GrunObject
+	
+	// members related to totalling for 'rates' ($/spatialUnit)
+	bool										m_contributesToProjectArea	= false;		// true if this GrunObject's area contributes to calculating the Stage/Project's m2 rate
 	
 	using MapMemberPtr = 	std::unordered_map<std::string, TotalAndUnit>GrunObjectTotals::*;
 	static constexpr 
