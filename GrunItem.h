@@ -59,6 +59,9 @@ struct RelationshipValues
 class GrunItem
 {
 	public:
+	static const GrunItem					INVALID;													// a static instance of an invlaid GrunItem
+
+	int										_libraryId					= -1;							// maps to the 'id' field in the UserInventory database table (this 'proves' the item's information has come from a valid source. if this value is -1 it means the object data is invalid)
 	std::string 							_itemName					= "";							// required value on construction
 	std::vector<RelationshipValues>			_itemCoreValues				= {};							// the core values in a GrunItem that must stay synced together
 
@@ -81,14 +84,16 @@ class GrunItem
 	std::string								_itemSupplier				= "";
 	std::string 							_itemSupplierSKU			= "";
 	std::string								_itemSupplierDescription	= "";
-	long long								_itemCostPerUnit			= 0;										// cost per GrunItem unit stored as signed 64 bit integer (long long)
+	long long								_itemCostPerUnitCents		= 0;										// cost per GrunItem unit stored as signed 64 bit integer (long long)
 	std::string 							_itemQuantityUnits			= "unit(s)";
 	std::string								_itemPrimaryLabourUnits		= "hour(s)";
 	bool									_hideFromClientView			= false;
 	std::string 							_clientViewMessage			= "Install " + _itemName + " as required";
 	std::chrono::system_clock::time_point	_itemLKGWUpdated{};
 	std::chrono::system_clock::time_point	_itemLKGWCalculated{};
-	// add more Item attributes as you need them through development
+
+	// values that require outsourced and calculated values are defined below here
+	
 
 	/* Additional ideas for more GrunItem attributes that are beyond what exists in the Spreadsheet are: 
 		- relationships to outside sources (databases) for relevant information such as:
@@ -100,6 +105,7 @@ class GrunItem
 
 	// default ctr - assigns values to required fields
 	GrunItem(	std::string name,
+				int			id						= -1,
 				std::string relationship			= "",
 				std::string	relComment				= "",
 				std::string quantityFormula			= "", 
@@ -108,6 +114,7 @@ class GrunItem
 			);
 
 	std::string	getCalculatedTimeString(const std::chrono::system_clock::time_point& member, const std::string& format = "%Y%m%d %H:%M:%S");
+	int 		getLibraryId() const { return _libraryId; }
 	int			getNumberOfRelationships() { return _itemCoreValues.size(); }
 	
 	/**
@@ -118,12 +125,25 @@ class GrunItem
 	 * @param	spatialQuantity			(double)		the calculated spatial quantity based on the relationship
 	 * @param	spatialUnit				(SpatialExponentValue)	the calculated spatial unit based on the relationship
 	 */
-	size_t addRelationshipValues(	const std::string& relationship				= "", 
-									const std::string& relComment				= "",
-									const double& itemQuantity 					= 0.0, 
-									const double& spatialQuantity				= 0.0, 
-									const SpatialExponentValue& spatialUnit 	= SpatialExponentValue::None
+	size_t addRelationshipValues(		const std::string& 			relationship	= "", 
+										const std::string& 			relComment		= "",
+										const double& 				itemQuantity 	= 0.0, 
+										const double& 				spatialQuantity	= 0.0, 
+										const SpatialExponentValue& spatialUnit 	= SpatialExponentValue::None
 								);
 
-	size_t	rmRelationshipValues(	const size_t	index);
+	size_t	rmRelationshipValues(		const size_t				index);
+	
+	bool	updateRelationshipValue(	const size_t				index, 
+										const std::string			relationship,
+										const std::string			relComment);
+	
+	// Overload the equality operator
+    bool operator==(const GrunItem& other) const 
+	{	
+        // We check the Library ID as the unique identifier
+        return this->_libraryId == other._libraryId;
+    }
+
+	bool operator!=(const GrunItem& other) const { return !(*this == other); }
 };

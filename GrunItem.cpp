@@ -1,6 +1,9 @@
 #include "GrunItem.h"
 
+const GrunItem GrunItem::INVALID("INVALID_ITEM_SENTINEL", -1);
+
 GrunItem::GrunItem(	std::string name,
+					int			id,
 					std::string relationship,
 					std::string relComment,
 					std::string quantityFormula, 
@@ -8,6 +11,7 @@ GrunItem::GrunItem(	std::string name,
 					std::string primaryLabourFormula
 				)
 				:	_itemName(std::move(name)),
+					_libraryId(id),
 					_itemQuantityFormula(std::move(quantityFormula)),
 					_itemQuantityUnits(std::move(units)),
 					_itemPrimaryLabourFormula(std::move(primaryLabourFormula))
@@ -66,6 +70,7 @@ size_t GrunItem::addRelationshipValues(	const std::string& relationship,
  */
 size_t GrunItem::rmRelationshipValues(const size_t index)
 {
+	// zero-check
 	if (index >= this->_itemCoreValues.size())
 	{
 		return 0;
@@ -78,17 +83,34 @@ size_t GrunItem::rmRelationshipValues(const size_t index)
 	return size_t();
 }
 
+bool GrunItem::updateRelationshipValue(const size_t index, const std::string relationship, const std::string relComment)
+{
+	// zero-check
+	if (index >= this->_itemCoreValues.size())
+	{
+		return false;
+	}
+	if (index >= 0 && index < this->_itemCoreValues.size())
+	{
+		this->_itemCoreValues[index].relationship 	= relationship;
+		this->_itemCoreValues[index].relComment		= relComment;
+	}
+	return true;
+}
+
 /**
  * @brief Converts a GrunItem's time-typed member to user-friendly date/time string, returned in optional format
  * @param member 	- the time-typed member in the GrunItem we want to retrieve (required)
- * @param format	- std::string that defines the format the time should be shown in (default: "%Y%m%d %H:%M:%S")
+ * @param format	- std::string that defines the format the time should be shown in, look up std::strftime() at https://en.cppreference.com/w/cpp/chrono/c/strftime.html to see the tokens you can use (default: "%Y%m%d %H:%M:%S")
  * @return std::string	- The formatted datetime string, NULL" if the item's attributes have never been calculated, or error msg if an error is encountered
  */
 std::string	GrunItem::getCalculatedTimeString(const std::chrono::system_clock::time_point& member, const std::string& format) 
 { 
-	// dev-note: this function uses some archaic looking C-style shit, because apparently if we want to use the "format" argument to 
-	// allow us to customize the way the timestamp is displayed in output, C++20 doesnt have a way to do this, so instead we have to 
-	// convert everything back into ancient C types and use buffers and shit to make it compile.
+	/* 
+		dev-note: this function uses some archaic looking C-style shit, because apparently if we want to use the "format" argument to 
+		allow us to customize the way the timestamp is displayed in output, C++20 doesnt have a way to do this, so instead we have to 
+		convert everything back into ancient C types and use buffers and shit to make it compile.
+	*/
 
 	// zero-check: if the p_member's value is in the default state, it means the GrunItem's attributes have never been calculated, so return the LKGWCalculatedTime string as "NULL"
 	if (std::chrono::system_clock::to_time_t(member) == 0) { return std::string("NULL"); }
