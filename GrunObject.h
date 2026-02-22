@@ -271,7 +271,7 @@ public:
 																std::string 				units 					= "unit(s)", 
 																std::string 				primaryLabourFormula 	= ""
 												);
-	bool							addGrunItem(				GrunItem					item);
+	GrunItem&						addGrunItem(				GrunItem					item);
 
 	size_t							addGrunItemRelationship(	GrunItem&					item,
 																const std::string&			relationship			= "", 
@@ -302,6 +302,7 @@ public:
 																const bool 					useExactSearch			= true
 															) const;
 	int								calculateGrunObjectTotals();
+	bool							calculateTotals();
     double 							getAspectRatio();
 	GrunItem&						getGrunItemByIndex(			const int 					index);
 	std::string						getGrunItemListInfoAsString(const std::string 			dateFormat				= "%d/%m/%Y",
@@ -339,7 +340,11 @@ private:
 	GrunObjectTotals							m_objectTotals;			// an object that holds Totals data about the GrunItems in this GrunObject
 	
 	// members related to totalling for 'rates' ($/spatialUnit)
-	bool										m_contributesToProjectArea	= false;		// true if this GrunObject's area contributes to calculating the Stage/Project's m2 rate
+	long long									m_TOTAL_COST_ItemsCalculated;				// the total cost of this GrunObject for the _calculated_ items needed to build it, in cents (no decimal point)
+	long long									m_TOTAL_COST_ItemsRounded;					// the total cost of this GrunObject for the _rounded_ (scheduled?) items needed to build it, in cents (no decimal point)
+	long long									m_TOTAL_COST_LabourCalculated;				// the total cost of this GrunObject for the _calculated_ labour needed to build it, in cents (no decimal point)
+	long long									m_TOTAL_COST_LabourRounded;					// the total cost of this GrunObject for the _rounded_ labour needed to build it, in cents (no decimal point)
+	bool										m_contributesToProjectArea	= false;	// true if this GrunObject's area contributes to calculating the Stage/Project's m2 rate
 	
 	using MapMemberPtr = 	std::unordered_map<std::string, TotalAndUnit>GrunObjectTotals::*;
 	static constexpr 

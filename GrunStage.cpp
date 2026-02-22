@@ -39,7 +39,11 @@ StageResults GrunStage::calculateMVPAreaRate(const bool rounded)
  */
 size_t GrunStage::calculateRateCost()
 {
-	// we really need the GrunItem class to have a costPerUnit value assigned to each item before we can get this method completed
+	size_t total = 0;
+	for (const auto& object : m_objects)
+	{
+		object;
+	}
 	return size_t();
 }
 
