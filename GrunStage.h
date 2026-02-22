@@ -33,6 +33,10 @@ class GrunStage
 
 	std::string					m_name		= "";							// the name of this GrunStage
 	std::vector<GrunObject>		m_objects;									// a vector of GrunObjects this GrunStage pwns
+	size_t						m_TOTAL_COST_ItemsCalculated;				// the total cost (in currency) for the Items needed to construct the Stage (based on non-rounded calculated ItemQtys)
+	size_t						m_TOTAL_COST_ItemsRouned;					// the total cost (in currency) for the Items needed to construct the Stage (based on rounded ItemQtys)
+	size_t						m_TOTAL_COST_LabourCalculated;				// the total cost (in currency) for the Labour needed to construct the Stage (based on non-rounded LabourQtys)
+	size_t						m_TOTAL_COST_LabourRounded;				// the total cost (in currency) for the Labour needed to construct the Stage (based on rounded LabourQtys)
 	SpatialExponentValue		m_rateUnit	= SpatialExponentValue::None;	// the spatial unit that the Stage's cost rate uses (the SpatialExponentValue will need to be converted into a locale-specific unit of measure like m2 vs sq feet etc. depending on end-user's locale.)
 	size_t						m_rateCost	= 0;							// the Stage's cost in locale currency (stored as size_t int - format to currency specs on output to UI)
 
