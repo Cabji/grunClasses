@@ -239,25 +239,33 @@ bool GrunObject::addGrunItem(std::string name, int libraryID, std::string relati
 	return true;
 }
 
-bool GrunObject::addGrunItem(GrunItem item)
+/**
+ * @brief addGrunItem overload
+ * 
+ * @param	item		(GrunItem)	- the GrunItem object to add to this GrunObject 
+ * @return				(GrunItem&)	- returns a reference to the GrunItem _in its memory location the GrunObject's m_items vector_
+ */
+GrunItem& GrunObject::addGrunItem(GrunItem item)
 {
 	// check if the object we were passed has valid data or not, return out false if it's INVALID
 	if (item == GrunItem::INVALID) 
 	{
 		std::println("Invalid GrunItem passed to GrunObject::addGrunItem(GrunItem &item)");
-		return false;
+		return const_cast<GrunItem&>(GrunItem::INVALID);
 	}
 
 	// check the item has a library id value
 	if (item._libraryId <= 0)
 	{
 		std::println("Library ID of GrunItem passed to GrunObject::addGrunItem(GrunItem &item) was <= 0 so returning false");
-		return false;
+		return const_cast<GrunItem&>(GrunItem::INVALID);
 	}
 
 	this->calculateGrunItemData(item);
 	m_items.push_back(item);
-	return true;
+
+	// return a reference to the item we just added _in its memory location in the m_items vector_
+	return m_items.back();
 }
 
 /**
@@ -475,6 +483,12 @@ size_t GrunObject::getTotalOfGrunItems()
 	return m_items.size();
 }
 
+/**
+ * @brief Gets the GrunObject's total cost (in cents - no decimal) to be constructed
+ * 
+ * @param getRounded 
+ * @return long long 
+ */
 long long GrunObject::getTotalCostOfObject(const bool& getRounded)
 {
 	long long result = 0;
@@ -784,6 +798,35 @@ int GrunObject::calculateGrunObjectTotals() {
         }
     }
     return 0;
+}
+
+/**
+ * @brief Calculates the totals for this Grunobject
+ * 
+ * @return true 
+ * @return false 
+ */
+bool GrunObject::calculateTotals()
+{
+	m_TOTAL_COST_ItemsCalculated	= 0;
+	m_TOTAL_COST_ItemsRounded		= 0;
+	m_TOTAL_COST_LabourCalculated	= 0;
+	m_TOTAL_COST_LabourRounded		= 0;
+	
+	// zero-check
+	if (m_items.size() > 0) 
+	{
+		// loop the items vector
+		for (const auto& item : m_items)
+		{
+			m_TOTAL_COST_ItemsCalculated	+= item._itemTotalQuantity 			* item._itemCostPerUnitCents;
+			m_TOTAL_COST_ItemsRounded 		+= item._itemTotalQuantityRounded	* item._itemCostPerUnitCents;
+			// labour total cost can't be calculated yet because the labour rate hasnt been put into the classes yet.
+			// labour rates are like a structure of their own
+		}
+	}
+	
+	return true;
 }
 
 // looks at a GrunItem's unit of measure and tries to determine which SpatialExponentValue it should be
