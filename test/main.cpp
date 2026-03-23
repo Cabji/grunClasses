@@ -6,82 +6,41 @@
 #include <ranges>
 #include <string>
 #include <vector>
-#include "GrunStage.h"
+#include "GrunProject.h"
 #include "DatabaseManager.h"
 #include "InventoryManager.h"
 
-namespace fs = std::filesystem;
-
-fs::path	get_app_data_path() 
-{
-	fs::path	home;
-#ifdef _WIN32
-	// windows based
-	const char*	drive	= std::getenv("HOMEDRIVE");
-	const char*	path	= std::getenv("HOMEPATH");
-	if (drive && path)
-		home = fs::path(drive) / path;
-	else
-	{
-		const char*	userProfile	= std::getenv("USERPROFILE");
-		if (userProfile)
-			home = fs::path(userProfile);
-	}
-#else
-	// unix based
-	const char*	homeEnv	= std::getenv("HOME");
-	if (homeEnv)
-		home = fs;:path(homeEnv);
-#endif
-
-	// append the app's config folder
-	fs::path	appPath	= home / ".grun";
-	// create directory if it doesn't exist
-	if (!home.empty() && !fs::exists(appPath))
-		fs::create_directories(appPath);
-
-		return appPath;
-}
 
 int main ()
 {
 	try 
 	{
-        // 1. Initialize Database
-		std::string dbFilename = get_app_data_path().string().append("/GrunInventory.db");
-        SQLite::Database db(dbFilename, SQLite::OPEN_READONLY);
-        InventoryManager inventory(db);
+		std::string dbFilename = get_app_data_path().string().append("/GrunInventory.db");	// get the full path to the database file
+        SQLite::Database db(dbFilename, SQLite::OPEN_READONLY);								// create a database connection instance
+        InventoryManager inventory(db);														// create an InventoryManager instance
 
-        GrunStage stageFootings("Footings");
-		stageFootings.createGrunObject("rectangle","SF1",50.0,0.4,0.4);
+		GrunProject	projectInstance("Test Project");										// create a GrunProject instance
+		GrunStage& stageFootings = projectInstance.createStage("Footings");					// create a GrunStage in the GrunProject instance
+		stageFootings.createGrunObject("rectangle","SF1",50.0,0.4,0.4);						// create a GrunObject in the Footings stage object (instance)
 		auto wrappedObj = stageFootings.getGrunObject(0);
 		if (wrappedObj)
 		{
+			// now, the GrunProject instance has some sort of access to an hourly rate
+			size_t hourlyRate = projectInstance.projectLabourRates.tiers[0].hourlyRate;
 			GrunObject& sf1Obj = wrappedObj.value();
 			// user InventoryManager object to fuzzy search and find best matches for your items in the database, then add the found GrunItem using GrunObject::addItem(GrunItem&)
 			sf1Obj.addGrunItem("Excavator",1000,"8","","","hour(s)","/2");
-			sf1Obj.addGrunItem(inventory.getBestMatch("T M 11 3"));
-			sf1Obj.addGrunItem(inventory.getBestMatch("chair multi"));
-			sf1Obj.addGrunItem(inventory.getBestMatch("CONC 20/20 footings"));
-			sf1Obj.addGrunItem(inventory.getBestMatch("starter bar 1200"));
-
-			// get the concrete item so we can set its relationship string
-			std::vector<size_t> searchResult = sf1Obj.findGrunItemByItemName("Concrete*20/20*", false);
-			if (searchResult.size() > 0)
-			{
-				GrunItem& concItem = sf1Obj.getGrunItemByIndex(searchResult[0]);
-				concItem.updateRelationshipValue(0,"V","");
-				// we want to recalculate the GrunItem's info after a relationship update, but the calculateGrunItem method is private in the GrunObject class
-				// we can create a updateGrunItemRelationship() method in GrunObject and we can pass it a reference to the GrunItem to update the relationship in, but also need to pass an index for the relationship in the item's _itemCoreValues member
-				// if we do this, we may as well write a method that will get a reference to the RelationshipValue we want to update (requesting it via index values is my guess)
-				// ask gemmy for advice about the best way to go here.
-			}
-			else
-			{
-				std::println("searchResult.size() was 0 or less.");
-			}
-			
-			std::println("{}",sf1Obj.getGrunItemListInfoAsString("%Y%m%d",32));
+			sf1Obj.addGrunItem(inventory.getBestMatch("T M 11 3")).updateRelationshipValue(0,"1L","SF1 Steel");
+			sf1Obj.addGrunItem(inventory.getBestMatch("chair multi")).updateRelationshipValue(0,"1L@0.8","SF1 Trench Chairs");
+			sf1Obj.addGrunItem(inventory.getBestMatch("CONC 20/20 footings")).updateRelationshipValue(0,"V","SF1 Concrete");
+			GrunItem& starters = sf1Obj.addGrunItem(inventory.getBestMatch("starter bar 1200"));
+			starters.updateRelationshipValue(0,"1L@0.8","SF1 Steel - Slab Ties @0.8");
+			starters.addRelationshipValues("0.75L@0.4","SF1 Steel - BW1 Starters @0.4");
+			starters.addRelationshipValues("2 * 4","SF1 Steel - Pier Extra Bars (2 piers, 4 bars per pier)");
+			// when relationships are added to GrunItems, the calculations are done at the GrunItem scope to determine how much of each item is required
+			// we need to Calculate the totals at the GrunObject level
+			//std::println("{}",sf1Obj.getGrunItemListInfoAsString("%Y%m%d",32));
+			std::println("Total Cost for Stage '{}': $ {}", stageFootings.getName(),stageFootings.calculateRateCost() / 100);
 		}
 		else
 		{

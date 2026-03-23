@@ -37,14 +37,15 @@ StageResults GrunStage::calculateMVPAreaRate(const bool rounded)
  * 
  * @return (size_t)			- the rateCost as an unsigned integer (no decimal places)
  */
-size_t GrunStage::calculateRateCost()
+size_t GrunStage::calculateRateCost(const bool rounded)
 {
-	size_t total = 0;
-	for (const auto& object : m_objects)
+	long long total = 0;
+	for (auto& object : m_objects)
 	{
-		object;
+		std::println("{} ",object.getObjectName());
+		total += object.getTotalCostOfObject(rounded);
 	}
-	return size_t();
+	return total;
 }
 
 size_t GrunStage::createGrunObject(const std::string &shapeType, const std::string &name, double x, double y, double z, const std::string &areaType, const std::string &stage)

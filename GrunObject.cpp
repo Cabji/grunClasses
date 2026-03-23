@@ -495,7 +495,9 @@ long long GrunObject::getTotalCostOfObject(const bool& getRounded)
 	for (const auto& item : m_items)
 	{		
 		(getRounded) ? result += item._itemTotalQuantityRounded * item._itemCostPerUnitCents : result += item._itemTotalQuantity * item._itemCostPerUnitCents;
+		std::println("{} cost: {} qty: {}",item._itemName,item._itemCostPerUnitCents,item._itemTotalQuantity);
 	}
+	std::println("result cost: {}", result);
 	return result;
 }
 
@@ -808,10 +810,9 @@ int GrunObject::calculateGrunObjectTotals() {
  */
 bool GrunObject::calculateTotals()
 {
-	m_TOTAL_COST_ItemsCalculated	= 0;
-	m_TOTAL_COST_ItemsRounded		= 0;
-	m_TOTAL_COST_LabourCalculated	= 0;
-	m_TOTAL_COST_LabourRounded		= 0;
+	m_TOTAL_COST_ItemsCalculated		= 0;
+	m_TOTAL_COST_ItemsRounded			= 0;
+	m_TOTAL_HOURS_LabourCalculated		= 0;
 	
 	// zero-check
 	if (m_items.size() > 0) 
@@ -821,8 +822,9 @@ bool GrunObject::calculateTotals()
 		{
 			m_TOTAL_COST_ItemsCalculated	+= item._itemTotalQuantity 			* item._itemCostPerUnitCents;
 			m_TOTAL_COST_ItemsRounded 		+= item._itemTotalQuantityRounded	* item._itemCostPerUnitCents;
-			// labour total cost can't be calculated yet because the labour rate hasnt been put into the classes yet.
-			// labour rates are like a structure of their own
+			m_TOTAL_HOURS_LabourCalculated 	+= item._itemTotalPrimaryLabour;
+			// dev-note: labour TOTAL_COST is not calculable at the GrunObject scope because the hourly rate is not available here
+			// dev-note: rounded labour total is not calculable at the GrunObject scope because it will eventually require 'Sessioning' and sessioning is not implemented in the MVP
 		}
 	}
 	

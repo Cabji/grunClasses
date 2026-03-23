@@ -1,6 +1,7 @@
 #pragma once
 #include <optional>
 #include <functional>
+#include <print>
 #include <vector>
 #include "GrunObject.h"
 
@@ -33,10 +34,10 @@ class GrunStage
 
 	std::string					m_name		= "";							// the name of this GrunStage
 	std::vector<GrunObject>		m_objects;									// a vector of GrunObjects this GrunStage pwns
-	size_t						m_TOTAL_COST_ItemsCalculated;				// the total cost (in currency) for the Items needed to construct the Stage (based on non-rounded calculated ItemQtys)
-	size_t						m_TOTAL_COST_ItemsRouned;					// the total cost (in currency) for the Items needed to construct the Stage (based on rounded ItemQtys)
+	size_t						m_TOTAL_COST_ObjectsCalculated;				// the total cost (in currency) to construct the Stage (based on non-rounded calculated ItemQtys)
+	size_t						m_TOTAL_COST_ObjectsRounded;				// the total cost (in currency) to construct the Stage (based on rounded ItemQtys)
 	size_t						m_TOTAL_COST_LabourCalculated;				// the total cost (in currency) for the Labour needed to construct the Stage (based on non-rounded LabourQtys)
-	size_t						m_TOTAL_COST_LabourRounded;				// the total cost (in currency) for the Labour needed to construct the Stage (based on rounded LabourQtys)
+	size_t						m_TOTAL_COST_LabourRounded;					// the total cost (in currency) for the Labour needed to construct the Stage (based on rounded LabourQtys)
 	SpatialExponentValue		m_rateUnit	= SpatialExponentValue::None;	// the spatial unit that the Stage's cost rate uses (the SpatialExponentValue will need to be converted into a locale-specific unit of measure like m2 vs sq feet etc. depending on end-user's locale.)
 	size_t						m_rateCost	= 0;							// the Stage's cost in locale currency (stored as size_t int - format to currency specs on output to UI)
 
@@ -44,16 +45,17 @@ class GrunStage
 	// ctr
 	GrunStage(const std::string& stageName);
 
-	size_t						addGrunObject(		const	GrunObject& 	gObject);
-	StageResults				calculateMVPAreaRate(const	bool			rounded);
-	size_t						calculateRateCost();
-	size_t						createGrunObject(	const 	std::string&	shapeType,
-													const 	std::string&	name,
-															double			x,
-															double			y,
-															double			z,
-													const	std::string&	areaType	= "horizontal",
-													const	std::string&	stage		= "");
+	size_t						addGrunObject(			const	GrunObject& 	gObject);
+	StageResults				calculateMVPAreaRate(	const	bool			rounded		= false);
+	size_t						calculateRateCost(		const	bool			rounded		= false);
+	size_t						calculateStageTotalCost();
+	size_t						createGrunObject(		const 	std::string&	shapeType,
+														const 	std::string&	name,
+																double			x,
+																double			y,
+																double			z,
+														const	std::string&	areaType	= "horizontal",
+														const	std::string&	stage		= "");
 	std::optional
 		<std::reference_wrapper
 			<GrunObject>>		getGrunObject(		const 	size_t 			index);

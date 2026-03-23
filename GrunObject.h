@@ -342,9 +342,9 @@ private:
 	// members related to totalling for 'rates' ($/spatialUnit)
 	long long									m_TOTAL_COST_ItemsCalculated;				// the total cost of this GrunObject for the _calculated_ items needed to build it, in cents (no decimal point)
 	long long									m_TOTAL_COST_ItemsRounded;					// the total cost of this GrunObject for the _rounded_ (scheduled?) items needed to build it, in cents (no decimal point)
-	long long									m_TOTAL_COST_LabourCalculated;				// the total cost of this GrunObject for the _calculated_ labour needed to build it, in cents (no decimal point)
-	long long									m_TOTAL_COST_LabourRounded;					// the total cost of this GrunObject for the _rounded_ labour needed to build it, in cents (no decimal point)
-	bool										m_contributesToProjectArea	= false;	// true if this GrunObject's area contributes to calculating the Stage/Project's m2 rate
+	double										m_TOTAL_HOURS_LabourCalculated;				// the total of this GrunObject for the _calculated_ labour needed to build it, in hours
+	double										m_TOTAL_HOURS_LabourRounded;				// the total of this GrunObject for the _rounded_ labour needed to build it, in hours
+	bool										m_contributesToProjectArea	= false;		// true if this GrunObject's area contributes to calculating the Stage/Project's m2 rate
 	
 	using MapMemberPtr = 	std::unordered_map<std::string, TotalAndUnit>GrunObjectTotals::*;
 	static constexpr 

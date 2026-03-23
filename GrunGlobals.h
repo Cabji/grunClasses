@@ -4,6 +4,8 @@
 
 namespace fs = std::filesystem;
 
+const size_t	DEFAULT_HOURLY_RATE	= 7500;
+
 /**
  * @brief Gets the app data path object which is used to find where the program will store its needed data files
  * 
@@ -62,7 +64,7 @@ struct LabourRates
 	// ctr
 	LabourRates()
 	{
-		tiers.push_back({"Default Hourly Rate", 7500});
+		tiers.push_back({"Default Hourly Rate", DEFAULT_HOURLY_RATE});
 	}
 
 	// helper to get Default Labour Tier object
