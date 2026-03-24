@@ -230,13 +230,21 @@ int GrunObject::asInt(SpatialExponentValue unit) {
  * @param primaryLabourFormula formula applied to quantity of this Item to calculate Primary Labour quantity (empty by default)
  * @return true if successful, false if failure.
  */
-bool GrunObject::addGrunItem(std::string name, int libraryID, std::string relationship, std::string relComment, std::string quantityFormula, std::string units, std::string primaryLabourFormula)
+GrunItem& GrunObject::addGrunItem(std::string name, int libraryID, std::string relationship, std::string relComment, std::string quantityFormula, std::string units, std::string primaryLabourFormula)
 {
 	// zero check
+	// create new item
 	GrunItem newItem(name, libraryID, relationship, relComment, quantityFormula, units, primaryLabourFormula);
+	// push new item into m_items
+	m_items.push_back(newItem);
+	// get the new item's memory address in the vector
+	GrunItem& newItemAddress = m_items.back();
+	// plug the item into the onValueChange slot
+	newItemAddress.onValueChange = [this](GrunItem& item) {this->calculateGrunItemData(item);};
+	// do the initial calculation of the item's data
 	calculateGrunItemData(newItem);
-	m_items.emplace_back(newItem);
-	return true;
+	
+	return newItemAddress;
 }
 
 /**
@@ -491,14 +499,38 @@ size_t GrunObject::getTotalOfGrunItems()
  */
 long long GrunObject::getTotalCostOfObject(const bool& getRounded)
 {
-	long long result = 0;
-	for (const auto& item : m_items)
-	{		
-		(getRounded) ? result += item._itemTotalQuantityRounded * item._itemCostPerUnitCents : result += item._itemTotalQuantity * item._itemCostPerUnitCents;
-		std::println("{} cost: {} qty: {}",item._itemName,item._itemCostPerUnitCents,item._itemTotalQuantity);
-	}
-	std::println("result cost: {}", result);
-	return result;
+    long long totalResult = 0;
+
+    // Header for clarity (Optional)
+    std::println("{:<35} {:>12} {:>10} {:>15}", "Item Name", "Unit Cost", "Qty", "Total Cost");
+    std::println("{:-<75}", ""); // A separator line
+
+    for (const auto& item : m_items)
+    {
+        // 1. Determine which quantity to use
+        double qty = getRounded ? item._itemTotalQuantityRounded : item._itemTotalQuantity;
+        
+        // 2. Calculate the item total (using double math first to handle fractions)
+        long long itemTotal = static_cast<long long>(std::ceil(qty * item._itemCostPerUnitCents));
+        
+        totalResult += itemTotal;
+
+        // 3. Formatted Output:
+        // {:<35}  -> Left-aligned, 25 characters wide (for names)
+        // {:>12.2f} -> Right-aligned, 12 wide, 2 decimal places (for unit price)
+        // {:>10.2f} -> Right-aligned, 10 wide, 2 decimal places (for qty)
+        // {:>15.2f} -> Right-aligned, 15 wide, 2 decimal places (for total)
+        std::println("{:<35} ${:>11.2f} {:>10.2f} ${:>14.2f}", 
+                     item._itemName, 
+                     static_cast<double>(item._itemCostPerUnitCents) / 100.0, 
+                     qty, 
+                     static_cast<double>(itemTotal) / 100.0);
+    }
+
+    std::println("{:-<75}", "");
+    std::println("{:<59} ${:>14.2f}", "GRAND TOTAL:", static_cast<double>(totalResult) / 100.0);
+    
+    return totalResult;
 }
 
 /**

@@ -263,7 +263,7 @@ public:
     static int 						asInt(SpatialExponentValue unit);
 
 
-	bool							addGrunItem(				std::string 				name,
+	GrunItem&						addGrunItem(				std::string 				name,
 																int							libraryID,
 																std::string 				relationship 			= "", 
 																std::string 				relComment 				= "",

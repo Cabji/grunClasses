@@ -61,7 +61,7 @@ class GrunItem
 {
 	public:
 	static const GrunItem					INVALID;													// a static instance of an invlaid GrunItem
-	std::function<void(GrunItem&)>			onValueChange;												// a function pointer that takes a reference to an instance of this class
+	std::function<void(GrunItem&)>			onValueChange;												// a function pointer that takes a reference to an instance of this class - this is used to recalculate GrunItem values onValueChange
 
 	int										_libraryId					= -1;							// maps to the 'id' field in the UserInventory database table (this 'proves' the item's information has come from a valid source. if this value is -1 it means the object data is invalid)
 	std::string 							_itemName					= "";							// required value on construction
@@ -127,14 +127,14 @@ class GrunItem
 	 * @param	spatialQuantity			(double)		the calculated spatial quantity based on the relationship
 	 * @param	spatialUnit				(SpatialExponentValue)	the calculated spatial unit based on the relationship
 	 */
-	size_t addRelationshipValues(		const std::string& 			relationship	= "", 
+	size_t 		addRelationshipValues(	const std::string& 			relationship	= "", 
 										const std::string& 			relComment		= "",
 										const double& 				itemQuantity 	= 0.0, 
 										const double& 				spatialQuantity	= 0.0, 
 										const SpatialExponentValue& spatialUnit 	= SpatialExponentValue::None
 								);
 
-	size_t	rmRelationshipValues(		const size_t				index);
+	size_t		rmRelationshipValues(	const size_t				index);
 	
 	GrunItem&	updateRelationshipValue(const size_t				index, 
 										const std::string			relationship,

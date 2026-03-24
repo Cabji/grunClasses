@@ -22,6 +22,7 @@ int main ()
 		GrunProject	projectInstance("Test Project");										// create a GrunProject instance
 		GrunStage& stageFootings = projectInstance.createStage("Footings");					// create a GrunStage in the GrunProject instance
 		stageFootings.createGrunObject("rectangle","SF1",50.0,0.4,0.4);						// create a GrunObject in the Footings stage object (instance)
+		stageFootings.createGrunObject("rectangle","PF1",1.0,1.0,0.3);						// create a GrunObject for a Pad Footing in the stage object
 		auto wrappedObj = stageFootings.getGrunObject(0);
 		if (wrappedObj)
 		{
@@ -40,12 +41,26 @@ int main ()
 			// when relationships are added to GrunItems, the calculations are done at the GrunItem scope to determine how much of each item is required
 			// we need to Calculate the totals at the GrunObject level
 			//std::println("{}",sf1Obj.getGrunItemListInfoAsString("%Y%m%d",32));
-			std::println("Total Cost for Stage '{}': $ {}", stageFootings.getName(),stageFootings.calculateRateCost() / 100);
 		}
 		else
 		{
 			std::println("Failed to find an object in m_objects[0]. Did you acutally add any objects to the stage?");
 		}
+		wrappedObj = stageFootings.getGrunObject(1);
+		if (wrappedObj)
+		{
+			GrunObject& pf1Obj = wrappedObj.value();
+			// user InventoryManager object to fuzzy search and find best matches for your items in the database, then add the found GrunItem using GrunObject::addItem(GrunItem&)
+			pf1Obj.addGrunItem(inventory.getBestMatch("NF82")).updateRelationshipValue(0,"5*2A","PF1 Mesh Top & Bottom");
+			pf1Obj.addGrunItem(inventory.getBestMatch("5065")).updateRelationshipValue(0,"5*A","PF1 Bottom Mesh Chairs 50/65 SOG");
+			pf1Obj.addGrunItem(inventory.getBestMatch("CONC 20/20 footings")).updateRelationshipValue(0,"5*V","PF1 Concrete");
+		}
+		else
+		{
+			std::println("Failed to find an object in m_objects[1]. Did you acutally add any objects to the stage?");
+		}
+		std::println("Total Cost for Stage '{}': $ {}", stageFootings.getName(),stageFootings.calculateRateCost() / 100);
+
     }
     catch (const std::exception& e) {
         std::println(std::cerr, "CRITICAL ERROR: {}", e.what());
