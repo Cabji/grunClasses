@@ -261,7 +261,7 @@ GrunItem& GrunObject::addGrunItem(GrunItem item)
 		return const_cast<GrunItem&>(GrunItem::INVALID);
 	}
 
-	this->calculateGrunItemData(item);
+	item.onValueChange = [this](GrunItem& item) {this->calculateGrunItemData(item);};
 	m_items.push_back(item);
 
 	// return a reference to the item we just added _in its memory location in the m_items vector_
@@ -740,6 +740,9 @@ bool GrunObject::calculateGrunItemData(GrunItem &item)
 	// reset totals to 0 otherwise we end up with incorrect totals for items with multiple relationships
 	item._spatialTotalQuantity	= 0;
 	item._itemTotalQuantity		= 0;
+
+	// loop through the GrunItem's _itemCoreValues to total up the item quantity and spatial quantity
+	// dev-note todo: check if the spatial quantity totalling needs to be aggregated by spatial unit
 	for (const auto coreValueSet : item._itemCoreValues)
 	{
 		item._spatialTotalQuantity	+= coreValueSet.spatialQuantity;

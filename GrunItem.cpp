@@ -41,9 +41,9 @@ std::string spatialExponentValueToString(SpatialExponentValue exponent)
  * @brief Adds a new set of RelationshipValues to the GrunItem. All arguments are optional.
  * @param relationship				(std::string)			- the GrunItem's relationship string (default: empty)
  * @param relComment				(std::string)			- this relationship's optional comment string (default: empty)
- * @param itemQuantity				(double)				- gets claculated later (default: 0.0)
- * @param spatialQuantity			(double)				- gets claculated later (default: 0.0)
- * @param spatialUnit				(SpatialExponentValue)	- gets claculated later (default: SpatialExponentValue::None)
+ * @param itemQuantity				(double)				- gets calculated later (default: 0.0)
+ * @param spatialQuantity			(double)				- gets calculated later (default: 0.0)
+ * @param spatialUnit				(SpatialExponentValue)	- gets calculated later (default: SpatialExponentValue::None)
  * @return	(int) total number of relationships the GrunItem has after this new addition
  */
 size_t GrunItem::addRelationshipValues(	const std::string& relationship,
@@ -83,19 +83,30 @@ size_t GrunItem::rmRelationshipValues(const size_t index)
 	return size_t();
 }
 
-bool GrunItem::updateRelationshipValue(const size_t index, const std::string relationship, const std::string relComment)
+/**
+ * @brief UPDATES an existing relationship in an existing GrunItem
+ * 
+ * @param index 		(size_t)		the location of the relationship in the GrunItem's coreValue vector
+ * @param relationship  (std::string)	the new relationship string
+ * @param relComment 	(std::string)	the new relComment string
+ * @return true  if the relationship is updated successfully
+ * @return false if the provided index is out of bounds
+ */
+GrunItem& GrunItem::updateRelationshipValue(const size_t index, const std::string relationship, const std::string relComment)
 {
 	// zero-check
 	if (index >= this->_itemCoreValues.size())
 	{
-		return false;
+		return const_cast<GrunItem&>(GrunItem::INVALID);
 	}
 	if (index >= 0 && index < this->_itemCoreValues.size())
 	{
 		this->_itemCoreValues[index].relationship 	= relationship;
 		this->_itemCoreValues[index].relComment		= relComment;
 	}
-	return true;
+
+	if (onValueChange) { onValueChange(*this); }
+	return *this;
 }
 
 /**

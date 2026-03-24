@@ -301,6 +301,7 @@ public:
 																const std::string& 			relComment,
 																const bool 					useExactSearch			= true
 															) const;
+	bool							calculateGrunItemData(GrunItem &item);
 	int								calculateGrunObjectTotals();
 	bool							calculateTotals();
     double 							getAspectRatio();
@@ -369,7 +370,6 @@ private:
 	bool					interpretGrunItemSpatialValues(GrunItem &item);
 	std::string				convertSpatialQuantitySHNToPEDMAS(const std::string &shn);
 	bool					interpretGrunItemItemQuantity(GrunItem &item);
-	bool					calculateGrunItemData(GrunItem &item);
 	double 					evaluateArithmetic(std::string expression);
 	SpatialExponentValue	getTokenExponent(std::string_view token);
 	SpatialExponentValue	getTokenExponent(char token);

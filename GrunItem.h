@@ -1,6 +1,7 @@
 #pragma once
 #include <chrono>
 #include <ctime>
+#include <functional>
 
 #ifndef CLASS_NAME
 #define CLASS_NAME "GrunItem"
@@ -60,6 +61,7 @@ class GrunItem
 {
 	public:
 	static const GrunItem					INVALID;													// a static instance of an invlaid GrunItem
+	std::function<void(GrunItem&)>			onValueChange;												// a function pointer that takes a reference to an instance of this class
 
 	int										_libraryId					= -1;							// maps to the 'id' field in the UserInventory database table (this 'proves' the item's information has come from a valid source. if this value is -1 it means the object data is invalid)
 	std::string 							_itemName					= "";							// required value on construction
@@ -134,10 +136,10 @@ class GrunItem
 
 	size_t	rmRelationshipValues(		const size_t				index);
 	
-	bool	updateRelationshipValue(	const size_t				index, 
+	GrunItem&	updateRelationshipValue(const size_t				index, 
 										const std::string			relationship,
 										const std::string			relComment);
-	
+
 	// Overload the equality operator
     bool operator==(const GrunItem& other) const 
 	{	
