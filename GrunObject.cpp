@@ -497,34 +497,53 @@ size_t GrunObject::getTotalOfGrunItems()
  * @param getRounded 
  * @return long long 
  */
-long long GrunObject::getTotalCostOfObject(const bool& getRounded)
+long long GrunObject::getTotalCostOfObject(const long long hourlyRate, const bool getRounded)
 {
+	// zero check - if theres no items in m_items there's nothing to do
+	// if there's no hourlyRate value we cant calculate cost of labour - so output a warning if that happens
     long long totalResult = 0;
+	if (m_items.empty())
+	{
+		if (CLASS_DEBUG_OUTPUT) { std::println("There's no items in this GrunObject so nothing to total up!"); }
+		return totalResult;
+	}
 
-    // Header for clarity (Optional)
+	if (hourlyRate == 0)
+	{
+		std::println("Warning: we were given no hourlyRate value so totalling the labour cost is not in the result.");
+	}
+
+    // debug output conditional on class debug output constant's value 
+	if (CLASS_DEBUG_OUTPUT)
+	{// Header for clarity
     std::println("{:<35} {:>12} {:>10} {:>15}", "Item Name", "Unit Cost", "Qty", "Total Cost");
     std::println("{:-<75}", ""); // A separator line
+	}
 
     for (const auto& item : m_items)
     {
-        // 1. Determine which quantity to use
-        double qty = getRounded ? item._itemTotalQuantityRounded : item._itemTotalQuantity;
-        
-        // 2. Calculate the item total (using double math first to handle fractions)
-        long long itemTotal = static_cast<long long>(std::ceil(qty * item._itemCostPerUnitCents));
-        
-        totalResult += itemTotal;
+		// also do labour cost
+        // decide rounded or not value
+        double qty				= getRounded ? item._itemTotalQuantityRounded : item._itemTotalQuantity;
+		double labourQty		= item._itemTotalPrimaryLabour ;
+        // calculate the item total (using double math first to handle fractions)
+        long long itemTotal		= static_cast<long long>(std::ceil(qty * item._itemCostPerUnitCents));
+		long long itemLabour	= static_cast<long long>(std::ceil(labourQty * hourlyRate));
+        totalResult += itemTotal + itemLabour;
 
-        // 3. Formatted Output:
-        // {:<35}  -> Left-aligned, 25 characters wide (for names)
-        // {:>12.2f} -> Right-aligned, 12 wide, 2 decimal places (for unit price)
-        // {:>10.2f} -> Right-aligned, 10 wide, 2 decimal places (for qty)
-        // {:>15.2f} -> Right-aligned, 15 wide, 2 decimal places (for total)
-        std::println("{:<35} ${:>11.2f} {:>10.2f} ${:>14.2f}", 
-                     item._itemName, 
-                     static_cast<double>(item._itemCostPerUnitCents) / 100.0, 
-                     qty, 
-                     static_cast<double>(itemTotal) / 100.0);
+		if (CLASS_DEBUG_OUTPUT)
+		{
+			// debug output
+			// {:<35}  -> Left-aligned, 25 characters wide (for names)
+			// {:>12.2f} -> Right-aligned, 12 wide, 2 decimal places (for unit price)
+			// {:>10.2f} -> Right-aligned, 10 wide, 2 decimal places (for qty)
+			// {:>15.2f} -> Right-aligned, 15 wide, 2 decimal places (for total)
+			std::println("{:<35} ${:>11.2f} {:>10.2f} ${:>14.2f}", 
+						item._itemName, 
+						static_cast<double>(item._itemCostPerUnitCents) / 100.0, 
+						qty, 
+						static_cast<double>(itemTotal) / 100.0);
+		}
     }
 
     std::println("{:-<75}", "");

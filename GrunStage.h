@@ -47,7 +47,8 @@ class GrunStage
 
 	size_t						addGrunObject(			const	GrunObject& 	gObject);
 	StageResults				calculateMVPAreaRate(	const	bool			rounded		= false);
-	size_t						calculateRateCost(		const	bool			rounded		= false);
+	size_t						calculateRateCost(		const	long long		hourlyRate,
+														const	bool			rounded		= false);
 	size_t						calculateStageTotalCost();
 	size_t						createGrunObject(		const 	std::string&	shapeType,
 														const 	std::string&	name,

@@ -238,6 +238,10 @@ struct std::formatter<RelationshipSearchResult>
 class GrunObject
 {
 public:
+
+	// class globals
+	const	bool		CLASS_DEBUG_OUTPUT	= true;
+
 	GrunObject()	= default;
 
     explicit		GrunObject(const std::string &shapeType = "unknown",
@@ -318,7 +322,8 @@ public:
 		<ItemAndTotal>				getItemQtyTotals(			const bool& 				getRounded				= false);
 	double							getObjectProperty(			const std::string			propertyName);
 	size_t							getTotalOfGrunItems();
-	long long						getTotalCostOfObject(		const bool&					getRounded				= false);
+	long long						getTotalCostOfObject(		const long long				hourlyRate,
+																const bool					getRounded				= false);
 	size_t 							removeGrunItem(				const std::string&			itemName,
 																bool						removeAll				= false);
 	bool							removeGrunItem(				size_t						index);
