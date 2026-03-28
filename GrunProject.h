@@ -5,7 +5,7 @@
 #include "GrunStage.h"
 
 #ifndef CLASS_NAME
-#define CLASS_NAME "GrunProejct"
+#define CLASS_NAME "GrunProject"
 #endif
 
 class GrunProject {

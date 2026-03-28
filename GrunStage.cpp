@@ -37,13 +37,13 @@ StageResults GrunStage::calculateMVPAreaRate(const bool rounded)
  * 
  * @return (size_t)			- the rateCost as an unsigned integer (no decimal places)
  */
-size_t GrunStage::calculateRateCost(const bool rounded)
+size_t GrunStage::calculateRateCost(const long long hourlyRate, const bool rounded)
 {
 	long long total = 0;
 	for (auto& object : m_objects)
 	{
 		std::println("{} ",object.getObjectName());
-		total += object.getTotalCostOfObject(rounded);
+		total += object.getTotalCostOfObject(hourlyRate, rounded);
 	}
 	return total;
 }

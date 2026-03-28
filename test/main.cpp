@@ -20,6 +20,8 @@ int main ()
         InventoryManager inventory(db);														// create an InventoryManager instance
 
 		GrunProject	projectInstance("Test Project");										// create a GrunProject instance
+		long long defaultHourlyRate = projectInstance.projectLabourRates.getDefaultTier().hourlyRate;
+
 		GrunStage& stageFootings = projectInstance.createStage("Footings");					// create a GrunStage in the GrunProject instance
 		stageFootings.createGrunObject("rectangle","SF1",50.0,0.4,0.4);						// create a GrunObject in the Footings stage object (instance)
 		stageFootings.createGrunObject("rectangle","PF1",1.0,1.0,0.3);						// create a GrunObject for a Pad Footing in the stage object
@@ -30,11 +32,11 @@ int main ()
 			size_t hourlyRate = projectInstance.projectLabourRates.tiers[0].hourlyRate;
 			GrunObject& sf1Obj = wrappedObj.value();
 			// user InventoryManager object to fuzzy search and find best matches for your items in the database, then add the found GrunItem using GrunObject::addItem(GrunItem&)
-			sf1Obj.addGrunItem("Excavator",1000,"8","","","hour(s)","/2");
+			sf1Obj.addGrunItem("Excavator",1000,"8","Excavator for ground works","*1","hour(s)","/2").updateItemPrice(15000);
 			sf1Obj.addGrunItem(inventory.getBestMatch("T M 11 3")).updateRelationshipValue(0,"1L","SF1 Steel");
 			sf1Obj.addGrunItem(inventory.getBestMatch("chair multi")).updateRelationshipValue(0,"1L@0.8","SF1 Trench Chairs");
 			sf1Obj.addGrunItem(inventory.getBestMatch("CONC 20/20 footings")).updateRelationshipValue(0,"V","SF1 Concrete");
-			GrunItem& starters = sf1Obj.addGrunItem(inventory.getBestMatch("starter bar 1200"));
+			GrunItem& starters = sf1Obj.addGrunItem(inventory.getBestMatch("starter bar N12 1200"));
 			starters.updateRelationshipValue(0,"1L@0.8","SF1 Steel - Slab Ties @0.8");
 			starters.addRelationshipValues("0.75L@0.4","SF1 Steel - BW1 Starters @0.4");
 			starters.addRelationshipValues("2 * 4","SF1 Steel - Pier Extra Bars (2 piers, 4 bars per pier)");
@@ -59,7 +61,7 @@ int main ()
 		{
 			std::println("Failed to find an object in m_objects[1]. Did you acutally add any objects to the stage?");
 		}
-		std::println("Total Cost for Stage '{}': $ {}", stageFootings.getName(),stageFootings.calculateRateCost() / 100);
+		std::println("Total Cost for Stage '{}': $ {}", stageFootings.getName(),stageFootings.calculateRateCost(defaultHourlyRate,true) / 100);
 
     }
     catch (const std::exception& e) {

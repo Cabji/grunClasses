@@ -240,7 +240,7 @@ class GrunObject
 public:
 
 	// class globals
-	const	bool		CLASS_DEBUG_OUTPUT	= true;
+	static const	bool		CLASS_DEBUG_OUTPUT	= true;
 
 	GrunObject()	= default;
 

@@ -109,6 +109,12 @@ GrunItem& GrunItem::updateRelationshipValue(const size_t index, const std::strin
 	return *this;
 }
 
+GrunItem& GrunItem::updateItemPrice(const long long itemPrice)
+{
+	_itemCostPerUnitCents = itemPrice;
+	return *this;
+}
+
 /**
  * @brief Converts a GrunItem's time-typed member to user-friendly date/time string, returned in optional format
  * @param member 	- the time-typed member in the GrunItem we want to retrieve (required)

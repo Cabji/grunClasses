@@ -494,64 +494,67 @@ size_t GrunObject::getTotalOfGrunItems()
 /**
  * @brief Gets the GrunObject's total cost (in cents - no decimal) to be constructed
  * 
- * @param getRounded 
- * @return long long 
+ * @param hourlyRate	(long long)	the hourly rate to use for calculating the labour cost
+ * @param getRounded 	(bool)		use rounded qty values or not (defaults to false: unrounded)
+ * @return				(long long)	grand total cost to construct this object
  */
-long long GrunObject::getTotalCostOfObject(const long long hourlyRate, const bool getRounded)
+long long GrunObject::getTotalCostOfObject(long long hourlyRate, bool getRounded)
 {
-	// zero check - if theres no items in m_items there's nothing to do
-	// if there's no hourlyRate value we cant calculate cost of labour - so output a warning if that happens
-    long long totalResult = 0;
-	if (m_items.empty())
-	{
-		if (CLASS_DEBUG_OUTPUT) { std::println("There's no items in this GrunObject so nothing to total up!"); }
-		return totalResult;
-	}
+    long long totalItemMaterialCost = 0;
+    long long totalItemLabourCost   = 0;
 
-	if (hourlyRate == 0)
-	{
-		std::println("Warning: we were given no hourlyRate value so totalling the labour cost is not in the result.");
-	}
-
-    // debug output conditional on class debug output constant's value 
 	if (CLASS_DEBUG_OUTPUT)
-	{// Header for clarity
-    std::println("{:<35} {:>12} {:>10} {:>15}", "Item Name", "Unit Cost", "Qty", "Total Cost");
-    std::println("{:-<75}", ""); // A separator line
+	{
+		// header for column titles
+		std::println("{:<32} {:>10} {:>10} {:>12} {:>12} {:>12}", 
+					"Item Name", "Qty", "Unit Cost", "Item Cost", "Item Lab.", "Lab. Cost");
+		std::println("{:-<94}", "");
 	}
 
     for (const auto& item : m_items)
     {
-		// also do labour cost
-        // decide rounded or not value
-        double qty				= getRounded ? item._itemTotalQuantityRounded : item._itemTotalQuantity;
-		double labourQty		= item._itemTotalPrimaryLabour ;
-        // calculate the item total (using double math first to handle fractions)
-        long long itemTotal		= static_cast<long long>(std::ceil(qty * item._itemCostPerUnitCents));
-		long long itemLabour	= static_cast<long long>(std::ceil(labourQty * hourlyRate));
-        totalResult += itemTotal + itemLabour;
+        // decide about rounding or not
+        double qty = getRounded ? item._itemTotalQuantityRounded : item._itemTotalQuantity;
+        
+        // calculate materials
+        long long itemMaterialCost = static_cast<long long>(std::ceil(qty * item._itemCostPerUnitCents));
+        totalItemMaterialCost += itemMaterialCost;
+
+        // labour calculations
+        double labourHours = item._itemTotalPrimaryLabour; 
+        
+        // calculate the labor dollar cost for this item using the passed hourlyRate (in cents)
+        long long itemLabourCost = static_cast<long long>(std::ceil(labourHours * hourlyRate));
+        totalItemLabourCost += itemLabourCost;
 
 		if (CLASS_DEBUG_OUTPUT)
 		{
-			// debug output
-			// {:<35}  -> Left-aligned, 25 characters wide (for names)
-			// {:>12.2f} -> Right-aligned, 12 wide, 2 decimal places (for unit price)
-			// {:>10.2f} -> Right-aligned, 10 wide, 2 decimal places (for qty)
-			// {:>15.2f} -> Right-aligned, 15 wide, 2 decimal places (for total)
-			std::println("{:<35} ${:>11.2f} {:>10.2f} ${:>14.2f}", 
+			// output the item's details
+			// Mat. Cost, Lab. Hours, and Lab. Cost are printed as standard currency/decimal representations
+			std::println("{:<32} {:>10.2f} ${:>9.2f} ${:>11.2f} {:>12.2f} ${:>11.2f}", 
 						item._itemName, 
-						static_cast<double>(item._itemCostPerUnitCents) / 100.0, 
 						qty, 
-						static_cast<double>(itemTotal) / 100.0);
+						static_cast<double>(item._itemCostPerUnitCents) / 100.0, 
+						static_cast<double>(itemMaterialCost) / 100.0,
+						labourHours,
+						static_cast<double>(itemLabourCost) / 100.0);
 		}
     }
 
-    std::println("{:-<75}", "");
-    std::println("{:<59} ${:>14.2f}", "GRAND TOTAL:", static_cast<double>(totalResult) / 100.0);
-    
-    return totalResult;
-}
+	long long grandTotalCombined = totalItemMaterialCost + totalItemLabourCost;
 
+	if (CLASS_DEBUG_OUTPUT)
+	{
+		// output summary
+		std::println("{:-<94}", "");
+		std::println("{:<68} ${:>11.2f}", "TOTAL ITEM MATERIAL COST:", static_cast<double>(totalItemMaterialCost) / 100.0);
+		std::println("{:<68} ${:>11.2f}", "TOTAL LABOUR COST FOR OBJECT:", static_cast<double>(totalItemLabourCost) / 100.0);
+		std::println("{:-<94}", "");
+		std::println("{:<68} ${:>11.2f}", "COMBINED OBJECT TOTAL (MAT + LABOUR):", static_cast<double>(grandTotalCombined) / 100.0);
+		std::println("{:=<94}", "");
+	}
+    return grandTotalCombined;
+}
 /**
  * @brief Removes one (first found) or all GrunItems with the specified name from the GrunObject's m_items.
  * @param itemName The name of the GrunItem(s) to remove.

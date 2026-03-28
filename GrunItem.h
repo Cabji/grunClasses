@@ -139,6 +139,7 @@ class GrunItem
 	GrunItem&	updateRelationshipValue(const size_t				index, 
 										const std::string			relationship,
 										const std::string			relComment);
+	GrunItem&	updateItemPrice(		const long long				itemPrice = 0);
 
 	// Overload the equality operator
     bool operator==(const GrunItem& other) const 
